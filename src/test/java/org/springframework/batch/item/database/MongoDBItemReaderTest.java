@@ -1,4 +1,4 @@
-package org.springframework.batch.support.mongodb;
+package org.springframework.batch.item.database;
 
 import java.net.UnknownHostException;
 
@@ -7,6 +7,8 @@ import static junit.framework.Assert.*;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.springframework.batch.item.database.DocumentMapper;
+import org.springframework.batch.item.database.MongoDBItemReader;
 
 import com.mongodb.DBCollection;
 import com.mongodb.DBObject;

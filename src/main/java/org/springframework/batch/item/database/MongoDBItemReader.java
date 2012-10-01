@@ -1,6 +1,8 @@
-package org.springframework.batch.support.mongodb;
+package org.springframework.batch.item.database;
 
 import org.springframework.batch.item.support.AbstractItemCountingItemStreamItemReader;
+import org.springframework.beans.factory.InitializingBean;
+import org.springframework.util.Assert;
 
 import com.mongodb.DB;
 import com.mongodb.DBCollection;
@@ -14,7 +16,7 @@ import com.mongodb.Mongo;
  *
  * @param <T> Type of mapped object.
  */
-public class MongoDBItemReader<T> extends AbstractItemCountingItemStreamItemReader<T> {
+public class MongoDBItemReader<T> extends AbstractItemCountingItemStreamItemReader<T> implements InitializingBean {
 	
 	// configurable attributes ......................................
 	
@@ -112,6 +114,13 @@ public class MongoDBItemReader<T> extends AbstractItemCountingItemStreamItemRead
 
 	public void setMapper(DocumentMapper<T> mapper) {
 		this.mapper = mapper;
+	}
+
+	@Override
+	public void afterPropertiesSet() throws Exception {
+		Assert.notNull(mongo, "An Mongo instance is required");
+		// TODO check more required parameters
+		
 	}
 
 	
