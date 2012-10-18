@@ -1,14 +1,18 @@
-package org.springframework.batch.item.database;
+package org.springframework.batch.item.mongodb;
 
 import org.springframework.batch.item.support.AbstractItemCountingItemStreamItemReader;
 import org.springframework.beans.factory.InitializingBean;
+import org.springframework.dao.DataAccessException;
 import org.springframework.util.Assert;
+import org.springframework.util.StringUtils;
 
+import com.mongodb.BasicDBObjectBuilder;
 import com.mongodb.DB;
 import com.mongodb.DBCollection;
 import com.mongodb.DBCursor;
 import com.mongodb.DBObject;
 import com.mongodb.Mongo;
+import com.mongodb.util.JSON;
 
 /**
  * This reader reads items from a MongoDB collection.
@@ -16,35 +20,39 @@ import com.mongodb.Mongo;
  *
  * @param <T> Type of mapped object.
  */
-public class MongoDBItemReader<T> extends AbstractItemCountingItemStreamItemReader<T> implements InitializingBean {
+abstract class AbstractMongoDBItemReader<T> extends AbstractItemCountingItemStreamItemReader<T> implements InitializingBean {
 	
 	// configurable attributes ......................................
 	
 	/** MongoDB connection pool. */
-	private Mongo mongo;
+	protected Mongo mongo;
 	
 	/** Name of the database to read from. */
-	private String db;
+	protected String db;
 	
 	/** Name of the collection to read from. */
-	private String collection;
+	protected String collection;
 	
 	/** 
 	 * Query in JSON notation, e.g. <code>{a: 1, b: 2}</code> (optional).
 	 * <p/>
 	 * If no query is given, the whole collection is read.
 	 */
-	private String query;
+	protected String query;
+	
+	/**
+	 * JSON document that filters the returned fields.
+	 */
+	protected String fields;
 
-	private DocumentMapper<T> mapper;
 	
 	// internally used attributes ......................................
 	
 	/** MongoDB database abstraction. */
-	private DB mongoDB;
+	protected DB mongoDB;
 	
 	/** Cursor pointing to the current document. */
-	private DBCursor cursor;
+	protected DBCursor cursor;
 	
 	@Override
 	protected void jumpToItem(int itemIndex) throws Exception {
@@ -54,19 +62,25 @@ public class MongoDBItemReader<T> extends AbstractItemCountingItemStreamItemRead
 
 	@Override
 	protected void doOpen() throws Exception {
-				// TODO Auto-generated method stub
 		mongoDB = mongo.getDB(db);
+		
+		// do NOT read from collections that do not exist
+		if ( !mongoDB.collectionExists(collection) ) {
+			throw new CollectionDoesNotExistsException("No such collection: " + collection);
+		}
+		
 		DBCollection coll = mongoDB.getCollection(collection);
 		
-		// TODO add (otional) query
-		cursor = coll.find();
-	}
-
-	@Override
-	protected T doRead() throws Exception {
-		DBObject document = cursor.next();
+		DBObject ref = null;
+		DBObject keys = null;
 		
-		return mapper.map(document);
+		if ( query != null ) {
+			ref = (DBObject)JSON.parse(query);
+		}
+		if ( fields != null ) {
+			keys = (DBObject)JSON.parse(fields);
+		}
+		cursor = coll.find(ref, keys);
 	}
 	
 	@Override
@@ -108,21 +122,11 @@ public class MongoDBItemReader<T> extends AbstractItemCountingItemStreamItemRead
 		this.query = query;
 	}
 
-	public DocumentMapper<T> getMapper() {
-		return mapper;
-	}
-
-	public void setMapper(DocumentMapper<T> mapper) {
-		this.mapper = mapper;
-	}
-
 	@Override
 	public void afterPropertiesSet() throws Exception {
 		Assert.notNull(mongo, "An Mongo instance is required");
 		// TODO check more required parameters
 		
 	}
-
-	
 	
 }

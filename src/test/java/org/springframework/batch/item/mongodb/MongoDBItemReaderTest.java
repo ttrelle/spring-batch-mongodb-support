@@ -1,4 +1,4 @@
-package org.springframework.batch.item.database;
+package org.springframework.batch.item.mongodb;
 
 import java.net.UnknownHostException;
 
@@ -7,15 +7,16 @@ import static junit.framework.Assert.*;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.springframework.batch.item.database.DocumentMapper;
-import org.springframework.batch.item.database.MongoDBItemReader;
+import org.springframework.batch.item.mongodb.DocumentMapper;
+import org.springframework.batch.item.mongodb.MongoDBRawItemReader;
 
+import com.mongodb.BasicDBObject;
 import com.mongodb.DBCollection;
 import com.mongodb.DBObject;
 import com.mongodb.Mongo;
 
 /**
- * Tests for {@link MongoDBItemReader}.
+ * Tests for {@link MongoDBRawItemReader}.
  * <p/>
  * This test assumes that a mongod instance is running on localhost at the default port 27017. 
  * If you want to use other values, use VM parameters -Dhost=... and -Dport=...
@@ -33,7 +34,7 @@ public class MongoDBItemReaderTest {
 	private static final String COLLECTION_NAME = "reader";
 	
 	/** Unit under test. */
-	private MongoDBItemReader<DomainObject> reader;
+	private MongoDBRawItemReader reader;
 	
 	private Mongo mongod;
 	
@@ -44,29 +45,37 @@ public class MongoDBItemReaderTest {
 		// set up collection
 		mongod = new Mongo(MONGOD_HOST, MONGOD_PORT);
 		collection = mongod.getDB(DB_NAME).createCollection(COLLECTION_NAME, null);
+		// create an empty collection requires an insert and a remove
+		collection.insert(new BasicDBObject());
+		collection.remove(new BasicDBObject());
 		
 		// prepare unit under test
-		reader = new MongoDBItemReader<MongoDBItemReaderTest.DomainObject>();
+		reader = new MongoDBRawItemReader();
 		reader.setMongo(mongod);
 		reader.setDb(DB_NAME);
 		reader.setCollection(COLLECTION_NAME);
-		reader.setMapper(new DomainObjectMapper());
+
 	}
 	
-	@Test(expected = RuntimeException.class)
-	public void should_fail_on_empty_collection() throws Exception {
+	@Test(expected = CollectionDoesNotExistsException.class)
+	public void should_fail_on_non_existing_collection() throws Exception {
+		// given
+		reader.setCollection("DOES_NOT_EXIST");
+		
 		// when
 		reader.doOpen();
-		DomainObject o = reader.doRead();
+		
+		// then: throw exception
 	}
 
-	public void ashould_fail_on_empty_collection() throws Exception {
+	@Test
+	public void should_handle_empty_collection() throws Exception {
 		// when
 		reader.doOpen();
-		DomainObject o = reader.doRead();
+		DBObject o = reader.doRead();
 		
 		// then
-		assertNotNull(o);
+		assertNull(o);
 	}
 	
 	

@@ -1,4 +1,4 @@
-package org.springframework.batch.item.database;
+package org.springframework.batch.item.mongodb;
 
 import com.mongodb.DBObject;
 
