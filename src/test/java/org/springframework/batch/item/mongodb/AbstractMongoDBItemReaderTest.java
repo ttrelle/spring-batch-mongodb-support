@@ -1,29 +1,33 @@
 package org.springframework.batch.item.mongodb;
 
-import java.net.UnknownHostException;
+import static junit.framework.Assert.assertEquals;
+import static junit.framework.Assert.assertNull;
+import static junit.framework.Assert.assertNotNull;
 
-import static junit.framework.Assert.*;
+import java.net.UnknownHostException;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.springframework.batch.item.mongodb.DocumentMapper;
-import org.springframework.batch.item.mongodb.MongoDBRawItemReader;
 
 import com.mongodb.BasicDBObject;
 import com.mongodb.DBCollection;
 import com.mongodb.DBObject;
 import com.mongodb.Mongo;
+import com.mongodb.WriteConcern;
+import com.mongodb.util.JSON;
 
 /**
- * Tests for {@link MongoDBRawItemReader}.
+ * Base class for MongoDB driven tests.
  * <p/>
  * This test assumes that a mongod instance is running on localhost at the default port 27017. 
  * If you want to use other values, use VM parameters -Dhost=... and -Dport=...
  * 
  * @author Tobias Trelle
  */
-public class MongoDBItemReaderTest {
+public abstract class AbstractMongoDBItemReaderTest {
 
 	private static final String MONGOD_HOST = System.getProperty("host", "localhost");
 	
@@ -34,11 +38,11 @@ public class MongoDBItemReaderTest {
 	private static final String COLLECTION_NAME = "reader";
 	
 	/** Unit under test. */
-	private MongoDBRawItemReader reader;
+	protected AbstractMongoDBItemReader reader;
 	
-	private Mongo mongod;
+	protected Mongo mongod;
 	
-	private DBCollection collection;
+	protected DBCollection collection;
 	
 	@Before
 	public void setUp() throws UnknownHostException {
@@ -54,30 +58,7 @@ public class MongoDBItemReaderTest {
 		reader.setMongo(mongod);
 		reader.setDb(DB_NAME);
 		reader.setCollection(COLLECTION_NAME);
-
 	}
-	
-	@Test(expected = CollectionDoesNotExistsException.class)
-	public void should_fail_on_non_existing_collection() throws Exception {
-		// given
-		reader.setCollection("DOES_NOT_EXIST");
-		
-		// when
-		reader.doOpen();
-		
-		// then: throw exception
-	}
-
-	@Test
-	public void should_handle_empty_collection() throws Exception {
-		// when
-		reader.doOpen();
-		DBObject o = reader.doRead();
-		
-		// then
-		assertNull(o);
-	}
-	
 	
 	@After
 	public void tearDown() throws Exception {
@@ -85,34 +66,43 @@ public class MongoDBItemReaderTest {
 		mongod.getDB(DB_NAME).getCollection(COLLECTION_NAME).drop();
 		mongod.close();
 	}
+	
+	protected void insert(String json) {
+		collection.insert((DBObject)JSON.parse(json), WriteConcern.NORMAL);
+	}
+	
+	protected static void assertReadCount(List<DBObject> docs, int expected) throws Exception {
 
-	class DomainObject {
-		private String id;
-		private int index;
-		
-		
-		public DomainObject(String id, int index) {
-			super();
-			this.id = id;
-			this.index = index;
+		assertNotNull("List is <null>", docs);
+		assertEquals("Document count mismatch", expected, docs.size());		
+	}
+	
+	protected static void assertFields(DBObject doc, String... keys) {
+		assertNotNull("Document is <null>", doc);
+		for (String key: keys) {
+			assertNotNull( "Field not read: " + doc.get(key) );
 		}
-		public void setId(String id) {
-			this.id = id;
-		}
-		public void setIndex(int index) {
-			this.index = index;
+		
+		assertEquals("Key count mismatch", keys.length, doc.keySet().size());
+	}
+
+	protected static void assertFields(List<DBObject> docs, String... keys) {
+		assertNotNull("Document list is <null>", docs);
+		
+		for (DBObject doc: docs) {
+			assertFields(doc,keys);
 		}
 	}
 	
-	class DomainObjectMapper implements DocumentMapper<DomainObject> {
-
-		@Override
-		public DomainObject map(DBObject document) {
-			if (document == null) return null;
-
-			return new DomainObject((String)document.get("id"), (Integer)document.get("index"));
-		}
+	protected List<DBObject> readAll() throws Exception {
+		List<DBObject> docs = new ArrayList<DBObject>();
 		
+		DBObject doc;
+		while ( (doc=(DBObject) reader.doRead()) != null ) {
+			docs.add(doc);
+		}		
+		
+		return docs;
 	}
 	
 }

@@ -14,7 +14,7 @@ public class MongoDBRawItemReader extends AbstractMongoDBItemReader<DBObject> {
 	private static final String NO_MORE = "no more";
 	
 	@Override
-	protected DBObject doRead() throws Exception {
+	public DBObject doRead() throws Exception {
 		try {
 			return cursor.next();
 		

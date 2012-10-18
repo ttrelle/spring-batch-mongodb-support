@@ -2,17 +2,15 @@ package org.springframework.batch.item.mongodb;
 
 import org.springframework.batch.item.support.AbstractItemCountingItemStreamItemReader;
 import org.springframework.beans.factory.InitializingBean;
-import org.springframework.dao.DataAccessException;
 import org.springframework.util.Assert;
-import org.springframework.util.StringUtils;
 
-import com.mongodb.BasicDBObjectBuilder;
 import com.mongodb.DB;
 import com.mongodb.DBCollection;
 import com.mongodb.DBCursor;
 import com.mongodb.DBObject;
 import com.mongodb.Mongo;
 import com.mongodb.util.JSON;
+import com.mongodb.util.JSONParseException;
 
 /**
  * This reader reads items from a MongoDB collection.
@@ -43,7 +41,7 @@ abstract class AbstractMongoDBItemReader<T> extends AbstractItemCountingItemStre
 	/**
 	 * JSON document that filters the returned fields.
 	 */
-	protected String fields;
+	protected String keys;
 
 	
 	// internally used attributes ......................................
@@ -54,9 +52,15 @@ abstract class AbstractMongoDBItemReader<T> extends AbstractItemCountingItemStre
 	/** Cursor pointing to the current document. */
 	protected DBCursor cursor;
 	
+	public abstract T doRead() throws Exception;
+	
 	@Override
 	protected void jumpToItem(int itemIndex) throws Exception {
-		// TODO Auto-generated method stub
+
+		if (itemIndex < 0) {
+			throw new IllegalArgumentException("index must not be negative");
+		}
+		
 		cursor.skip(itemIndex);
 	}
 
@@ -72,15 +76,25 @@ abstract class AbstractMongoDBItemReader<T> extends AbstractItemCountingItemStre
 		DBCollection coll = mongoDB.getCollection(collection);
 		
 		DBObject ref = null;
-		DBObject keys = null;
+		DBObject keysDoc = null;
 		
 		if ( query != null ) {
-			ref = (DBObject)JSON.parse(query);
+			ref = parseDocument(query);
 		}
-		if ( fields != null ) {
-			keys = (DBObject)JSON.parse(fields);
+		
+		if ( keys != null ) {
+			keysDoc = parseDocument(keys);
 		}
-		cursor = coll.find(ref, keys);
+		
+		cursor = coll.find(ref, keysDoc);
+	}
+	
+	private DBObject parseDocument(String json) {
+		try {
+			return (DBObject)JSON.parse(json);
+		} catch (JSONParseException e) {
+			throw new IllegalDocumentException("Not a valid document: " + json, e);
+		}
 	}
 	
 	@Override
@@ -88,10 +102,6 @@ abstract class AbstractMongoDBItemReader<T> extends AbstractItemCountingItemStre
 		if ( cursor != null ) {
 			cursor.close();
 		}
-	}
-
-	public Mongo getMongo() {
-		return mongo;
 	}
 
 	public void setMongo(Mongo mongo) {
@@ -106,27 +116,24 @@ abstract class AbstractMongoDBItemReader<T> extends AbstractItemCountingItemStre
 		this.db = db;
 	}
 
-	public String getCollection() {
-		return collection;
-	}
-
 	public void setCollection(String collection) {
 		this.collection = collection;
 	}
 
-	public String getQuery() {
-		return query;
-	}
 
 	public void setQuery(String query) {
 		this.query = query;
 	}
+	
+	public void setKeys(String keys) {
+		this.keys = keys;
+	}
 
 	@Override
 	public void afterPropertiesSet() throws Exception {
-		Assert.notNull(mongo, "An Mongo instance is required");
-		// TODO check more required parameters
-		
+		Assert.notNull(mongo, "A Mongo instance is required");
+		Assert.notNull( db, "A database name is required" );
+		Assert.notNull( collection, "A collection name is required" );
 	}
 	
 }
