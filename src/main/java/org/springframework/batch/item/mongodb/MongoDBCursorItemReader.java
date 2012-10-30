@@ -20,10 +20,13 @@ import com.mongodb.util.JSONParseException;
  *
  * @param <T> Type of mapped object.
  */
-public class MongoDBCursorItemReader extends AbstractItemCountingItemStreamItemReader<Object> implements InitializingBean {
+public class MongoDBCursorItemReader 
+	extends AbstractItemCountingItemStreamItemReader<Object> 
+	implements InitializingBean {
 	
 	/** A RuntimeException w/ this msg signals: no more documents can be read. */
 	private static final String NO_MORE = "no more";
+	
 	
 	// configurable attributes ......................................
 	
@@ -59,12 +62,15 @@ public class MongoDBCursorItemReader extends AbstractItemCountingItemStreamItemR
 	
 	/** Cursor pointing to the current document. */
 	protected DBCursor cursor;
+
+	
+	// public item reader interface .........................................
 	
 	@Override
 	protected void jumpToItem(int itemIndex) throws Exception {
 
 		if (itemIndex < 0) {
-			throw new IllegalArgumentException("index must not be negative");
+			throw new IllegalArgumentException("Index must not be negative: " + itemIndex);
 		}
 		
 		cursor.skip(itemIndex);
@@ -117,6 +123,16 @@ public class MongoDBCursorItemReader extends AbstractItemCountingItemStreamItemR
 		}
 	}	
 	
+	@Override
+	protected void doClose() throws Exception {
+		if ( cursor != null ) {
+			cursor.close();
+		}
+	}	
+
+	
+	// Internal methods .....................................................
+	
 	private boolean dbExists() {
 		List<String> dbNames = mongo.getDatabaseNames();
 		
@@ -130,14 +146,10 @@ public class MongoDBCursorItemReader extends AbstractItemCountingItemStreamItemR
 			throw new IllegalArgumentException("Not a valid JSON document: " + json, e);
 		}
 	}
-	
-	@Override
-	protected void doClose() throws Exception {
-		if ( cursor != null ) {
-			cursor.close();
-		}
-	}
 
+	
+	// Setter ...............................................................
+	
 	public void setMongo(Mongo mongo) {
 		this.mongo = mongo;
 	}
