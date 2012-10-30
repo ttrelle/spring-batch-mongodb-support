@@ -19,6 +19,6 @@ public interface DocumentObjectConverter<T> {
 	 * @param document The JSON object.
 	 * @return The mapped business object.
 	 */
-	T map(DBObject document);
+	T convert(DBObject document);
 	
 }

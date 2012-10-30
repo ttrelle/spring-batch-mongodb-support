@@ -290,7 +290,7 @@ public class MongoDBCursorItemReaderTest extends AbstractMongoDBItemReaderTest {
 	private class DocumentUserConverter implements DocumentObjectConverter<User> {
 
 		@Override
-		public User map(DBObject document) {
+		public User convert(DBObject document) {
 			User usr = new User();
 			
 			usr.setId((String)document.get("_id"));

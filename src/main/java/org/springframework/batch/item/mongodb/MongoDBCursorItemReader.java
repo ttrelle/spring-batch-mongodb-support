@@ -105,7 +105,7 @@ public class MongoDBCursorItemReader extends AbstractItemCountingItemStreamItemR
 	public Object doRead() throws Exception {
 		try {
 			
-			return converter != null ? converter.map(cursor.next() ) : cursor.next();
+			return converter != null ? converter.convert(cursor.next() ) : cursor.next();
 		
 		} catch (RuntimeException e) {
 			if (NO_MORE.equals(e.getMessage())) {
