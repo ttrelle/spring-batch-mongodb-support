@@ -1,7 +1,6 @@
 package org.springframework.batch.item.mongodb;
 
 import static junit.framework.Assert.assertEquals;
-import static junit.framework.Assert.assertNull;
 import static junit.framework.Assert.assertNotNull;
 
 import java.net.UnknownHostException;
@@ -10,7 +9,6 @@ import java.util.List;
 
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Test;
 
 import com.mongodb.BasicDBObject;
 import com.mongodb.DBCollection;
@@ -38,7 +36,7 @@ public abstract class AbstractMongoDBItemReaderTest {
 	private static final String COLLECTION_NAME = "reader";
 	
 	/** Unit under test. */
-	protected AbstractMongoDBItemReader reader;
+	protected MongoDBCursorItemReader reader;
 	
 	protected Mongo mongod;
 	
@@ -54,7 +52,7 @@ public abstract class AbstractMongoDBItemReaderTest {
 		collection.remove(new BasicDBObject());
 		
 		// prepare unit under test
-		reader = new MongoDBRawItemReader();
+		reader = new MongoDBCursorItemReader();
 		reader.setMongo(mongod);
 		reader.setDb(DB_NAME);
 		reader.setCollection(COLLECTION_NAME);

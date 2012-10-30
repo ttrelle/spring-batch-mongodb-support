@@ -1,6 +1,8 @@
 package org.springframework.batch.item.mongodb;
 
-import static junit.framework.Assert.assertNull;
+import static org.hamcrest.core.Is.is;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThat;
 
 import java.util.List;
 
@@ -9,16 +11,27 @@ import org.junit.Test;
 import com.mongodb.DBObject;
 
 /**
- * Tests for {@link MongoDBRawItemReader}.
+ * Tests for {@link MongoDBCursorItemReader}.
  * <p/>
  * This test assumes that a mongod instance is running on localhost at the default port 27017. 
  * If you want to use other values, use VM parameters -Dhost=... and -Dport=...
  * 
  * @author Tobias Trelle
  */
-public class MongoDBRawItemReaderTest extends AbstractMongoDBItemReaderTest {
+public class MongoDBCursorItemReaderTest extends AbstractMongoDBItemReaderTest {
+
+	@Test(expected = IllegalArgumentException.class)
+	public void should_fail_on_non_existing_database() throws Exception {
+		// given
+		reader.setDb("DOES_NOT_EXIST");
+		
+		// when
+		reader.doOpen();
+		
+		// then: expect exception
+	}
 	
-	@Test(expected = CollectionDoesNotExistsException.class)
+	@Test(expected = IllegalArgumentException.class)
 	public void should_fail_on_non_existing_collection() throws Exception {
 		// given
 		reader.setCollection("DOES_NOT_EXIST");
@@ -72,8 +85,8 @@ public class MongoDBRawItemReaderTest extends AbstractMongoDBItemReaderTest {
 		assertFields(docs, "i");
 	}	
 	
-	@Test(expected = IllegalDocumentException.class)
-	public void should_handle__illegal_key_set() throws Exception {
+	@Test(expected = IllegalArgumentException.class)
+	public void should_handle_illegal_key_set() throws Exception {
 		// given
 		for (int i =0; i<5;i++) {
 			insert("{i:" + i + ", j:42}");
@@ -122,8 +135,8 @@ public class MongoDBRawItemReaderTest extends AbstractMongoDBItemReaderTest {
 	}
 	
 	
-	@Test(expected = IllegalDocumentException.class)
-	public void should_handle__illegal_query() throws Exception {
+	@Test(expected = IllegalArgumentException.class)
+	public void should_handle_illegal_query() throws Exception {
 		// given
 		for (int i =0; i<5;i++) {
 			insert("{i:" + i + ", j:42}");
@@ -134,6 +147,24 @@ public class MongoDBRawItemReaderTest extends AbstractMongoDBItemReaderTest {
 		reader.doOpen();
 		
 		// then: expect expection
+	}
+	
+	@Test
+	public void should_use_document_converter() throws Exception {
+		// given
+		insert("{_id:\"0\", name: \"User 1\", n:3}");
+		reader.setConverter(new DocumentUserConverter());
+		
+		// when
+		reader.doOpen();
+		Object o = reader.doRead();
+		
+		// then
+		assertThat(o instanceof User, is(true));
+		User u = (User)o;
+		assertThat(u.getId(), is("0"));
+		assertThat(u.getName(), is("User 1"));
+		assertThat(u.getLoginCount(), is(3));
 	}
 	
 	@Test(expected = IllegalArgumentException.class)
@@ -228,6 +259,47 @@ public class MongoDBRawItemReaderTest extends AbstractMongoDBItemReaderTest {
 		reader.afterPropertiesSet();
 		
 		// then: expect exception
+	}
+	
+	private class User {
+		private String _id;
+		private String name;
+		private int loginCount;
+		public String getId() {
+			return _id;
+		}
+		public void setId(String _id) {
+			this._id = _id;
+		}
+		public String getName() {
+			return name;
+		}
+		public void setName(String name) {
+			this.name = name;
+		}
+		public int getLoginCount() {
+			return loginCount;
+		}
+		public void setLoginCount(int loginCount) {
+			this.loginCount = loginCount;
+		}
+		
+		
+	}
+	
+	private class DocumentUserConverter implements DocumentObjectConverter<User> {
+
+		@Override
+		public User map(DBObject document) {
+			User usr = new User();
+			
+			usr.setId((String)document.get("_id"));
+			usr.setName((String)document.get("name"));
+			usr.setLoginCount((Integer)document.get("n"));
+			
+			return usr;
+		}
+		
 	}
 	
 }
