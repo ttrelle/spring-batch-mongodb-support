@@ -5,6 +5,7 @@ import java.util.List;
 import org.springframework.batch.item.support.AbstractItemCountingItemStreamItemReader;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.util.Assert;
+import org.springframework.util.ClassUtils;
 
 import com.mongodb.DB;
 import com.mongodb.DBCollection;
@@ -15,10 +16,32 @@ import com.mongodb.util.JSON;
 import com.mongodb.util.JSONParseException;
 
 /**
- * This reader reads items from a MongoDB collection.
+ * This item reader reads documents from a MongoDB collection.
+ * <p/>
+ * Required parameters are:
+ * <ul>
+ * <li>{@link #mongo}: a reference to a {@link Mongo} connection pool.</li>
+ * <li>{@link #db}: Name of the database to use. 
+ * 		If the database does not exist on the MongoDB server an error occurs.</li>
+ * <li>{@link #collection}: Name of the collection to read from. By default, all
+ * 		documents from that collection are read.
+ * 		If the collection does not exist inside the database an error occurs.</li>
+ * </ul>
+ * <p/>
+ * Optional parameters are:
+ * <ul>
+ * <li>{@link #query}: a query string in JSON notation to restrict the set of read documents,
+ * 		e.g. <code>{a:1, $or: {b: "foo"}}</code></li>
+ * <li>{@link #keys}: the set of attributes to read from each single document. By default,
+ * 		all key/value pairs are read. If you specify a key set, only the data from these
+ * 		keys are read, e.g. {_id:0, a:1} return only the data for key <code>a</code></li>
+ * <li>{@link #converter}: By default, this reader returns instances of {@link DBObject} from
+ * 		the API of the MongoDB Java driver. If you want to use another format in your
+ * 		item processor, provide a converter that implements the {@link DocumentObjectConverter }
+ * 		interface.</li>
+ * </ul>
+ * 
  * @author Tobias Trelle
- *
- * @param <T> Type of mapped object.
  */
 public class MongoDBCursorItemReader 
 	extends AbstractItemCountingItemStreamItemReader<Object> 
@@ -65,6 +88,10 @@ public class MongoDBCursorItemReader
 
 	
 	// public item reader interface .........................................
+	
+	public MongoDBCursorItemReader() {
+		setName(ClassUtils.getShortName(MongoDBCursorItemReader.class));
+	}
 	
 	@Override
 	protected void jumpToItem(int itemIndex) throws Exception {
