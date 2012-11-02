@@ -7,7 +7,9 @@ This project offers support for accessing a [MongoDB NoSQL datastore](http://www
 * [MongoDBItemReader](https://github.com/ttrelle/spring-batch-mongodb-support/blob/master/src/main/java/org/springframework/batch/item/mongodb/MongoDBItemReader.java)
 * [MongoDBItemWriter](https://github.com/ttrelle/spring-batch-mongodb-support/blob/master/src/main/java/org/springframework/batch/item/mongodb/MongoDBItemWriter.java)
 
-# Usage
+Please note that the writer DOES NOT support transactions because of the nature of MongoDB.
+
+## Usage
 
 After cloning the project run
 
@@ -25,7 +27,7 @@ There are examples how to use the reader and writer in your batch jobs:
 * [MongoDBItemWriterIntegrationTest](https://github.com/ttrelle/spring-batch-mongodb-support/blob/master/src/test/java/org/springframework/batch/item/mongodb/example/MongoDBItemWriterIntegrationTest.java) and
   [MongoDBItemWriterIntegrationTest-context.xml](https://github.com/ttrelle/spring-batch-mongodb-support/blob/master/src/test/resources/org/springframework/batch/item/mongodb/example/MongoDBItemWriterIntegrationTest-context.xml)
 
-# Dependencies
+## Dependencies
 
 This project depends only on
 * [Spring Batch](https://github.com/SpringSource/spring-batch)
