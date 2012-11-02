@@ -4,7 +4,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>de.codecentric</groupId>
 	<artifactId>spring-batch-mongodb-support</artifactId>
-	<version>0.0.1-SNAPSHOT</version>
+	<version>1.0.RC1</version>
 
 	<name>Spring Batch MongoDB Support</name>
 	<url>https://github.com/ttrelle/spring-batch-mongodb-support</url>
