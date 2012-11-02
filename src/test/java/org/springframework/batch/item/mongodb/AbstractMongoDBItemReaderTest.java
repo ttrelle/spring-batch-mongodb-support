@@ -36,7 +36,7 @@ public abstract class AbstractMongoDBItemReaderTest {
 	private static final String COLLECTION_NAME = "reader";
 	
 	/** Unit under test. */
-	protected MongoDBCursorItemReader reader;
+	protected MongoDBItemReader reader;
 	
 	protected Mongo mongod;
 	
@@ -52,7 +52,7 @@ public abstract class AbstractMongoDBItemReaderTest {
 		collection.remove(new BasicDBObject());
 		
 		// prepare unit under test
-		reader = new MongoDBCursorItemReader();
+		reader = new MongoDBItemReader();
 		reader.setMongo(mongod);
 		reader.setDb(DB_NAME);
 		reader.setCollection(COLLECTION_NAME);

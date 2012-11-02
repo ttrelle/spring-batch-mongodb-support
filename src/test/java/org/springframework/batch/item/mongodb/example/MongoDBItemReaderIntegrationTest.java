@@ -17,7 +17,7 @@ import org.springframework.batch.core.JobExecution;
 import org.springframework.batch.core.JobExecutionException;
 import org.springframework.batch.core.JobParametersBuilder;
 import org.springframework.batch.core.launch.JobLauncher;
-import org.springframework.batch.item.mongodb.MongoDBCursorItemReader;
+import org.springframework.batch.item.mongodb.MongoDBItemReader;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -27,7 +27,7 @@ import com.mongodb.DBCollection;
 import com.mongodb.Mongo;
 
 /**
- * Tests for {@link MongoDBCursorItemReader}.
+ * Tests for {@link MongoDBItemReader}.
  * <p/>
  * This test assumes that a mongod instance is running on localhost at the default port 27017. 
  * If you want to use other values, use VM parameters -Dhost=... and -Dport=...
@@ -36,7 +36,7 @@ import com.mongodb.Mongo;
  */
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration
-public class MongoDBCursorItemReaderIntegrationTest {
+public class MongoDBItemReaderIntegrationTest {
 	
 	private static final String DB = "test";
 	

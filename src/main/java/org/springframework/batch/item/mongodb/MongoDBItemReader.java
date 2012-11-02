@@ -43,7 +43,7 @@ import com.mongodb.util.JSONParseException;
  * 
  * @author Tobias Trelle
  */
-public class MongoDBCursorItemReader 
+public class MongoDBItemReader 
 	extends AbstractItemCountingItemStreamItemReader<Object> 
 	implements InitializingBean {
 	
@@ -89,8 +89,8 @@ public class MongoDBCursorItemReader
 	
 	// public item reader interface .........................................
 	
-	public MongoDBCursorItemReader() {
-		setName(ClassUtils.getShortName(MongoDBCursorItemReader.class));
+	public MongoDBItemReader() {
+		setName(ClassUtils.getShortName(MongoDBItemReader.class));
 	}
 	
 	@Override

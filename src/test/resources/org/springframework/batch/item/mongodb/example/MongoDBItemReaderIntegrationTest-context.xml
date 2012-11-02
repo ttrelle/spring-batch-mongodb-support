@@ -21,7 +21,7 @@
 
 	<!-- Item Reader -->
 	<bean id="itemReader1"
-		class="org.springframework.batch.item.mongodb.MongoDBCursorItemReader"
+		class="org.springframework.batch.item.mongodb.MongoDBItemReader"
 		scope="step" 
 		p:mongo-ref="mongod" 
 		p:db="#{jobParameters['db']}"

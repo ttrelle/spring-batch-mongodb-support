@@ -11,14 +11,14 @@ import org.junit.Test;
 import com.mongodb.DBObject;
 
 /**
- * Tests for {@link MongoDBCursorItemReader}.
+ * Tests for {@link MongoDBItemReader}.
  * <p/>
  * This test assumes that a mongod instance is running on localhost at the default port 27017. 
  * If you want to use other values, use VM parameters -Dhost=... and -Dport=...
  * 
  * @author Tobias Trelle
  */
-public class MongoDBCursorItemReaderTest extends AbstractMongoDBItemReaderTest {
+public class MongoDBItemReaderTest extends AbstractMongoDBItemReaderTest {
 
 	@Test(expected = IllegalArgumentException.class)
 	public void should_fail_on_non_existing_database() throws Exception {
