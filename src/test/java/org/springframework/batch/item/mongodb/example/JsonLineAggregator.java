@@ -1,4 +1,4 @@
-package org.springframework.batch.item.mongodb;
+package org.springframework.batch.item.mongodb.example;
 
 import org.springframework.batch.item.file.transform.LineAggregator;
 

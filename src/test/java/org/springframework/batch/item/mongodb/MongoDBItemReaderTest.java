@@ -4,8 +4,12 @@ import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 
+import java.net.UnknownHostException;
+import java.util.ArrayList;
 import java.util.List;
 
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 
 import com.mongodb.DBObject;
@@ -18,8 +22,22 @@ import com.mongodb.DBObject;
  * 
  * @author Tobias Trelle
  */
-public class MongoDBItemReaderTest extends AbstractMongoDBItemReaderTest {
+public class MongoDBItemReaderTest extends AbstractMongoDBTest {
 
+	/** Unit under test. */
+	protected MongoDBItemReader reader;	
+	
+	@Before
+	public void setUp() throws UnknownHostException {
+		setUpMongo();
+		
+		// prepare unit under test
+		reader = new MongoDBItemReader();
+		reader.setMongo(mongod);
+		reader.setDb(DB_NAME);
+		reader.setCollection(COLLECTION_NAME);
+	}	
+	
 	@Test(expected = IllegalArgumentException.class)
 	public void should_fail_on_non_existing_database() throws Exception {
 		// given
@@ -333,33 +351,22 @@ public class MongoDBItemReaderTest extends AbstractMongoDBItemReaderTest {
 		// then: expect exception
 	}
 	
-
+	@After
+	public void tearDown() throws Exception {
+		reader.doClose();
+		tearDownMongo();
+	}	
 	
-	private class User {
-		private String _id;
-		private String name;
-		private int loginCount;
-		public String getId() {
-			return _id;
-		}
-		public void setId(String _id) {
-			this._id = _id;
-		}
-		public String getName() {
-			return name;
-		}
-		public void setName(String name) {
-			this.name = name;
-		}
-		public int getLoginCount() {
-			return loginCount;
-		}
-		public void setLoginCount(int loginCount) {
-			this.loginCount = loginCount;
-		}
+	protected List<DBObject> readAll() throws Exception {
+		List<DBObject> docs = new ArrayList<DBObject>();
 		
+		DBObject doc;
+		while ( (doc=(DBObject) reader.doRead()) != null ) {
+			docs.add(doc);
+		}		
 		
-	}
+		return docs;
+	}	
 	
 	private class DocumentUserConverter implements DocumentObjectConverter<User> {
 

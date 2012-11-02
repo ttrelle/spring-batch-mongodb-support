@@ -2,13 +2,12 @@ package org.springframework.batch.item.mongodb;
 
 import static junit.framework.Assert.assertEquals;
 import static junit.framework.Assert.assertNotNull;
+import static org.hamcrest.core.Is.is;
+import static org.junit.Assert.assertThat;
 
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.List;
-
-import org.junit.After;
-import org.junit.Before;
 
 import com.mongodb.BasicDBObject;
 import com.mongodb.DBCollection;
@@ -25,42 +24,30 @@ import com.mongodb.util.JSON;
  * 
  * @author Tobias Trelle
  */
-public abstract class AbstractMongoDBItemReaderTest {
+public abstract class AbstractMongoDBTest {
 
 	private static final String MONGOD_HOST = System.getProperty("host", "localhost");
 	
 	private static final int MONGOD_PORT = Integer.parseInt(System.getProperty("port", "27017"));
 	
-	private static final String DB_NAME = "test";
+	protected static final String DB_NAME = "test";
 	
-	private static final String COLLECTION_NAME = "reader";
-	
-	/** Unit under test. */
-	protected MongoDBItemReader reader;
+	protected static final String COLLECTION_NAME = "user";
 	
 	protected Mongo mongod;
 	
 	protected DBCollection collection;
 	
-	@Before
-	public void setUp() throws UnknownHostException {
+	protected void setUpMongo() throws UnknownHostException {
 		// set up collection
 		mongod = new Mongo(MONGOD_HOST, MONGOD_PORT);
 		collection = mongod.getDB(DB_NAME).createCollection(COLLECTION_NAME, null);
 		// create an empty collection requires an insert and a remove
 		collection.insert(new BasicDBObject());
-		collection.remove(new BasicDBObject());
-		
-		// prepare unit under test
-		reader = new MongoDBItemReader();
-		reader.setMongo(mongod);
-		reader.setDb(DB_NAME);
-		reader.setCollection(COLLECTION_NAME);
+		collection.remove(new BasicDBObject());		
 	}
 	
-	@After
-	public void tearDown() throws Exception {
-		reader.doClose();
+	protected void tearDownMongo() {
 		mongod.getDB(DB_NAME).getCollection(COLLECTION_NAME).drop();
 		mongod.close();
 	}
@@ -91,16 +78,44 @@ public abstract class AbstractMongoDBItemReaderTest {
 			assertFields(doc,keys);
 		}
 	}
-	
-	protected List<DBObject> readAll() throws Exception {
+
+	protected static List<DBObject> createDocuments(int n) {
 		List<DBObject> docs = new ArrayList<DBObject>();
 		
-		DBObject doc;
-		while ( (doc=(DBObject) reader.doRead()) != null ) {
-			docs.add(doc);
-		}		
+		for (int i=0; i<n;i++) {
+			docs.add( new BasicDBObject("i", i));
+		}
 		
 		return docs;
+	}
+	
+	protected void assertCollectionCount(long expected) {
+		assertThat(collection.count() ,is(expected));
+	}
+	
+	protected class User {
+		private String _id;
+		private String name;
+		private int loginCount;
+		public String getId() {
+			return _id;
+		}
+		public void setId(String _id) {
+			this._id = _id;
+		}
+		public String getName() {
+			return name;
+		}
+		public void setName(String name) {
+			this.name = name;
+		}
+		public int getLoginCount() {
+			return loginCount;
+		}
+		public void setLoginCount(int loginCount) {
+			this.loginCount = loginCount;
+		}
+		
 	}
 	
 }
