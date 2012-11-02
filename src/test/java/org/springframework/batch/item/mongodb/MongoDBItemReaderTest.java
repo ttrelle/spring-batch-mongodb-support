@@ -117,6 +117,24 @@ public class MongoDBItemReaderTest extends AbstractMongoDBItemReaderTest {
 	}
 
 	@Test
+	public void should_query_documents_with_limit() throws Exception {
+		// given
+		for (int i =0; i<5;i++) {
+			insert("{i:" + i + ", j:42}");
+		}
+		reader.setLimit(3);
+	
+		// when
+		reader.doOpen();
+		List<DBObject> docs = readAll();
+		
+		// then
+		assertReadCount(docs, 3);
+		assertFields(docs, "_id", "i", "j");
+	}
+	
+	
+	@Test
 	public void should_query_documents_with_a_subset_of_keys() throws Exception {
 		// given
 		for (int i =0; i<5;i++) {
@@ -165,6 +183,38 @@ public class MongoDBItemReaderTest extends AbstractMongoDBItemReaderTest {
 		assertThat(u.getId(), is("0"));
 		assertThat(u.getName(), is("User 1"));
 		assertThat(u.getLoginCount(), is(3));
+	}
+	
+	@Test
+	public void should_sort_documents() throws Exception {
+		// given
+		for (int i =0; i<5;i++) {
+			insert("{i:" + i + ", j:42}");
+		}
+		reader.setSort("{i:-1}");
+	
+		// when
+		reader.doOpen();
+		List<DBObject> docs = readAll();
+		
+		// then
+		assertReadCount(docs, 5);
+		assertThat( (Integer)docs.get(0).get("i"), is(4) );
+		assertThat( (Integer)docs.get(4).get("i"), is(0) );
+	}
+
+	@Test(expected = IllegalArgumentException.class)
+	public void should_detect_illegal_sort() throws Exception {
+		// given
+		for (int i =0; i<5;i++) {
+			insert("{i:" + i + ", j:42}");
+		}
+		reader.setSort("not a JSON document");
+	
+		// when
+		reader.doOpen();
+		
+		// then: expect expection		
 	}
 	
 	@Test(expected = IllegalArgumentException.class)
@@ -249,6 +299,17 @@ public class MongoDBItemReaderTest extends AbstractMongoDBItemReaderTest {
 		
 		// then: expect exception
 	}
+
+	@Test(expected = IllegalArgumentException.class) 
+	public void should_detect_empty_db_property() throws Exception {
+		// given
+		reader.setDb("");
+		
+		// when
+		reader.afterPropertiesSet();
+		
+		// then: expect exception
+	}
 	
 	@Test(expected = IllegalArgumentException.class) 
 	public void should_detect_missing_collection_property() throws Exception {
@@ -260,6 +321,19 @@ public class MongoDBItemReaderTest extends AbstractMongoDBItemReaderTest {
 		
 		// then: expect exception
 	}
+
+	@Test(expected = IllegalArgumentException.class) 
+	public void should_detect_empty_collection_property() throws Exception {
+		// given
+		reader.setCollection("");
+		
+		// when
+		reader.afterPropertiesSet();
+		
+		// then: expect exception
+	}
+	
+
 	
 	private class User {
 		private String _id;

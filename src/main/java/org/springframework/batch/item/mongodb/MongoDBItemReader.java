@@ -6,6 +6,7 @@ import org.springframework.batch.item.support.AbstractItemCountingItemStreamItem
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.util.Assert;
 import org.springframework.util.ClassUtils;
+import org.springframework.util.StringUtils;
 
 import com.mongodb.DB;
 import com.mongodb.DBCollection;
@@ -70,13 +71,37 @@ public class MongoDBItemReader
 	protected String query;
 	
 	/**
-	 * JSON document that filters the returned fields.
+	 * JSON document that filters the returned fields (optinal).
 	 */
 	protected String keys;
 	
-	/** Optional custom converter. */
+	/** Custom converter to map {@DBObject}s to Java POJOs (optional). */
 	protected DocumentObjectConverter<?> converter;
 
+	/** 
+	 * Number of documents to read in one batch (optional).
+	 * @see DBCursor#batchSize(int) 
+	 */ 
+	protected int batchSize;
+	
+	/** 
+	 * Sort criteria in JSON notation,e.g. <code>{a: -1, b: 1}</code> (optional).
+	 * @see DBCursor#sort(DBObject) 
+	 */
+	protected String sort;
+
+	/**
+	 * Use a snapshot query (optional). Default is <code>false</code>.
+	 * @see DBCursor#snapshot()
+	 */
+	protected boolean snapshot;
+	
+	/**
+	 * Limit the amount of read documents (optional).
+	 * @see DBCursor#limit(int)
+	 */
+	protected int limit;
+	
 	
 	// internally used attributes ......................................
 	
@@ -117,21 +142,9 @@ public class MongoDBItemReader
 		if ( !mongoDB.collectionExists(collection) ) {
 			throw new IllegalArgumentException("No such collection: " + collection);
 		}
-		
-		DBCollection coll = mongoDB.getCollection(collection);
-		
-		DBObject ref = null;
-		DBObject keysDoc = null;
-		
-		if ( query != null ) {
-			ref = parseDocument(query);
-		}
-		
-		if ( keys != null ) {
-			keysDoc = parseDocument(keys);
-		}
-		
-		cursor = coll.find(ref, keysDoc);
+
+		// create the cursor
+		cursor = createCursor(mongoDB.getCollection(collection));
 	}
 	
 	@Override
@@ -166,7 +179,41 @@ public class MongoDBItemReader
 		return dbNames != null && dbNames.contains(db);
 	}
 	
-	private DBObject parseDocument(String json) {
+	private DBCursor createCursor(DBCollection coll) {
+		DBCursor crsr;
+		DBObject ref = null;
+		DBObject keysDoc = null;
+		
+		if ( StringUtils.hasText(query) ) {
+			ref = parseDocument(query);
+		}
+		
+		if ( StringUtils.hasText(keys) ) {
+			keysDoc = parseDocument(keys);
+		}
+		
+		crsr = coll.find(ref, keysDoc);	
+		
+		if ( StringUtils.hasText(sort) ) {
+			crsr = crsr.sort(parseDocument(sort));
+		}
+		
+		if ( batchSize != 0 ) {
+			crsr = crsr.batchSize(batchSize);
+		}
+		
+		if ( snapshot ) {
+			crsr = crsr.snapshot();
+		}
+
+		if ( limit != 0) {
+			crsr = crsr.limit(limit);
+		}
+		
+		return crsr;
+	}
+	
+	private static DBObject parseDocument(String json) {
 		try {
 			return (DBObject)JSON.parse(json);
 		} catch (JSONParseException e) {
@@ -201,12 +248,28 @@ public class MongoDBItemReader
 	public void setConverter(DocumentObjectConverter<?> converter) {
 		this.converter = converter;
 	}
+	
+	public void setBatchSize(int batchSize) {
+		this.batchSize = batchSize;
+	}
+
+	public void setSort(String sort) {
+		this.sort = sort;
+	}
+	
+	public void setSnapshot(boolean snapshot) {
+		this.snapshot = snapshot;
+	}
+
+	public void setLimit(int limit) {
+		this.limit = limit;
+	}
 
 	@Override
 	public void afterPropertiesSet() throws Exception {
 		Assert.notNull(mongo, "A Mongo instance is required");
-		Assert.notNull( db, "A database name is required" );
-		Assert.notNull( collection, "A collection name is required" );
+		Assert.hasText( db, "A database name is required" );
+		Assert.hasText( collection, "A collection name is required" );
 	}
 	
 }
