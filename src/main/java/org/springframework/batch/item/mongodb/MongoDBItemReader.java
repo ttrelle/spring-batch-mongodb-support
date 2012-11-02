@@ -40,6 +40,10 @@ import com.mongodb.util.JSONParseException;
  * 		the API of the MongoDB Java driver. If you want to use another format in your
  * 		item processor, provide a converter that implements the {@link DocumentObjectConverter }
  * 		interface.</li>
+ * <li>{@link #sort}: Optional sort criteria.</li>
+ * <li>{@link #limit}: Optional limit for amounts of read documents.</li>
+ * <li>{@link #batchSize}: Size of batch reads.</li>
+ * <li>{@link #snapshot}: Use a query snapshot or not.</li>
  * </ul>
  * 
  * @author Tobias Trelle
@@ -105,9 +109,6 @@ public class MongoDBItemReader
 	
 	// internally used attributes ......................................
 	
-	/** MongoDB database abstraction. */
-	protected DB mongoDB;
-	
 	/** Cursor pointing to the current document. */
 	protected DBCursor cursor;
 
@@ -136,7 +137,7 @@ public class MongoDBItemReader
 			throw new IllegalArgumentException("No such database: " + db);
 		}
 		
-		mongoDB = mongo.getDB(db);
+		final DB mongoDB = mongo.getDB(db);
 		
 		// do NOT read from collections that do not exist
 		if ( !mongoDB.collectionExists(collection) ) {
