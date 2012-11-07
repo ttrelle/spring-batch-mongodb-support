@@ -8,6 +8,7 @@ import java.util.Map.Entry;
 import org.springframework.transaction.support.TransactionSynchronizationAdapter;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
+import com.mongodb.DBCollection;
 import com.mongodb.DBObject;
 import com.mongodb.Mongo;
 import com.mongodb.WriteConcern;
@@ -41,7 +42,9 @@ public class TransactionAwareMongoDBWriter {
 				objectsToWriteList.addAll(objectsToWrite);
 			}
 		} else {
-			mongo.getDB(db).getCollection(collection).insert(objectsToWrite, writeConcern);
+			DBCollection coll = mongo.getDB(db).getCollection(collection);
+			WriteConcern wc = writeConcern == null ? coll.getWriteConcern() : writeConcern;
+			coll.insert(objectsToWrite, wc);
 		}
 	}
 	
@@ -75,7 +78,9 @@ public class TransactionAwareMongoDBWriter {
 				private void complete() {
 					Map<MongoDBCollectionKey, List<DBObject>> objectsToWriteMap = (Map<MongoDBCollectionKey, List<DBObject>>) TransactionSynchronizationManager.getResource(mongoKey);
 					for (Entry<MongoDBCollectionKey, List<DBObject>> entry: objectsToWriteMap.entrySet()){
-						mongo.getDB(entry.getKey().getDb()).getCollection(entry.getKey().getCollection()).insert(entry.getValue(), entry.getKey().getWriteConcern());
+						DBCollection coll = mongo.getDB(entry.getKey().getDb()).getCollection(entry.getKey().getCollection());
+						WriteConcern wc = entry.getKey().getWriteConcern() == null ? coll.getWriteConcern() : entry.getKey().getWriteConcern();
+						coll.insert(entry.getValue(), wc);
 					}
 				}
 				

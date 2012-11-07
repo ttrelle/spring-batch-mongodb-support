@@ -7,7 +7,7 @@ import org.springframework.batch.item.support.AbstractItemStreamItemWriter;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.util.Assert;
 
-import com.mongodb.DBCollection;
+
 import com.mongodb.DBObject;
 import com.mongodb.Mongo;
 import com.mongodb.WriteConcern;
@@ -54,17 +54,13 @@ public class MongoDBItemWriter
 	/** Overwrite the write concern of the target collection (optional). */
 	protected WriteConcern writeConcern;
 	
+	private TransactionAwareMongoDBWriter transactionAwareMongoDBWriter;
+	
 	// public item reader interface .........................................
 	
 	@Override
 	public void write(List<? extends Object> items) throws Exception {
-		final DBCollection coll;
-		final WriteConcern wc;
-		
-		coll = mongo.getDB(db).getCollection(collection);
-		wc = writeConcern == null ? coll.getWriteConcern() : writeConcern;
-		
-		coll.insert( prepareDocuments(items), wc );
+		transactionAwareMongoDBWriter.writeToCollection(db, collection, writeConcern, prepareDocuments(items));
 	}
 	
 	// private methods .....................................................
@@ -113,6 +109,7 @@ public class MongoDBItemWriter
 		Assert.notNull(mongo, "A Mongo instance is required");
 		Assert.hasText( db, "A database name is required" );
 		Assert.hasText( collection, "A collection name is required" );
+		transactionAwareMongoDBWriter = new TransactionAwareMongoDBWriter(mongo);
 	}
 
 }
