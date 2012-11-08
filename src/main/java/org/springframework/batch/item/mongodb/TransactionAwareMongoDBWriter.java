@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import org.springframework.core.NamedThreadLocal;
 import org.springframework.transaction.support.TransactionSynchronizationAdapter;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
@@ -25,6 +26,8 @@ public class TransactionAwareMongoDBWriter {
 
 	private Mongo mongo;
 	private String mongoKey;
+	private static final ThreadLocal<Throwable> mongoDbFailure =
+			new NamedThreadLocal<Throwable>("Mongo DB failure on insert");
 	
 	public TransactionAwareMongoDBWriter(Mongo mongo){
 		this.mongo = mongo;
@@ -48,6 +51,14 @@ public class TransactionAwareMongoDBWriter {
 		}
 	}
 	
+	public Throwable getMongoDBFailure(){
+		return mongoDbFailure.get();
+	}
+	
+	public void resetMongoDBFailure() {
+		mongoDbFailure.remove();
+	}
+
 	@SuppressWarnings("unchecked")
 	private Map<MongoDBCollectionKey, List<DBObject>> getObjectsToWriteMap(){
 		if (!TransactionSynchronizationManager.hasResource(mongoKey)) {
@@ -61,8 +72,9 @@ public class TransactionAwareMongoDBWriter {
 							complete();
 						}
 					}
-					catch (Exception e) {
-						throw new MongoDBInsertFailedException("Could not write to Mongo DB", e);
+					catch (Throwable t) {
+						mongoDbFailure.set(t);
+						throw new MongoDBInsertFailedException("Could not write to Mongo DB", t);
 					}
 					finally {
 						clear();
@@ -160,4 +172,5 @@ public class TransactionAwareMongoDBWriter {
 		}
 		
 	}
+
 }

@@ -3,11 +3,13 @@ package org.springframework.batch.item.mongodb;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.springframework.batch.core.ChunkListener;
 import org.springframework.batch.item.support.AbstractItemStreamItemWriter;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.util.Assert;
 
 
+import com.mongodb.DBCollection;
 import com.mongodb.DBObject;
 import com.mongodb.Mongo;
 import com.mongodb.WriteConcern;
@@ -35,7 +37,9 @@ import com.mongodb.WriteConcern;
  */
 public class MongoDBItemWriter 
 	extends AbstractItemStreamItemWriter<Object> 
-	implements InitializingBean {
+	implements InitializingBean, ChunkListener {
+	
+	private static final boolean DEFAULT_TRANSACTIONAL = true;
 	
 	// configurable attributes ......................................
 	
@@ -54,13 +58,25 @@ public class MongoDBItemWriter
 	/** Overwrite the write concern of the target collection (optional). */
 	protected WriteConcern writeConcern;
 	
+	/**
+	 * Flag to indicate that writing to MongoDB should be delayed if a
+	 * transaction is active. Defaults to true.
+	 */
+	protected boolean transactional = DEFAULT_TRANSACTIONAL;
+	
 	private TransactionAwareMongoDBWriter transactionAwareMongoDBWriter;
 	
-	// public item reader interface .........................................
+	// public item writer interface .........................................
 	
 	@Override
 	public void write(List<? extends Object> items) throws Exception {
-		transactionAwareMongoDBWriter.writeToCollection(db, collection, writeConcern, prepareDocuments(items));
+		if (transactional){
+			transactionAwareMongoDBWriter.writeToCollection(db, collection, writeConcern, prepareDocuments(items));
+		} else {
+			DBCollection coll = mongo.getDB(db).getCollection(collection);
+			WriteConcern wc = writeConcern == null ? coll.getWriteConcern() : writeConcern;
+			coll.insert(prepareDocuments(items), wc);
+		}
 	}
 	
 	// private methods .....................................................
@@ -103,6 +119,14 @@ public class MongoDBItemWriter
 	public void setWriteConcern(WriteConcern writeConcern) {
 		this.writeConcern = writeConcern;
 	}
+	
+	/**
+	 * Flag to indicate that writing to MongoDB should be delayed if a
+	 * transaction is active. Defaults to true.
+	 */
+	public void setTransactional(boolean transactional) {
+		this.transactional = transactional;
+	}
 
 	@Override
 	public void afterPropertiesSet() throws Exception {
@@ -110,6 +134,20 @@ public class MongoDBItemWriter
 		Assert.hasText( db, "A database name is required" );
 		Assert.hasText( collection, "A collection name is required" );
 		transactionAwareMongoDBWriter = new TransactionAwareMongoDBWriter(mongo);
+	}
+
+	@Override
+	public void beforeChunk() {
+		// Nothing to do.
+	}
+
+	@Override
+	public void afterChunk() {
+		if (transactional && transactionAwareMongoDBWriter.getMongoDBFailure()!=null){
+			Throwable t = transactionAwareMongoDBWriter.getMongoDBFailure();
+			transactionAwareMongoDBWriter.resetMongoDBFailure();
+			throw new MongoDBInsertFailedException("Could not write to Mongo DB", t);
+		}
 	}
 
 }

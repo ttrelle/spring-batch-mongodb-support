@@ -1,6 +1,5 @@
 package org.springframework.batch.item.mongodb;
 
-import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -13,6 +12,7 @@ import com.mongodb.DBObject;
 
 /**
  * Tests for {@link MongoDBItemWriter}.
+ * The transactional tests test the transactional version of the writer without an active transaction.
  * <p/>
  * This test assumes that a mongod instance is running on localhost at the default port 27017. 
  * If you want to use other values, use VM parameters -Dhost=... and -Dport=...
@@ -25,7 +25,7 @@ public class MongoDBItemWriterTest extends AbstractMongoDBTest {
 	protected MongoDBItemWriter writer;		
 	
 	@Before
-	public void setUp() throws UnknownHostException {
+	public void setUp() throws Exception {
 		setUpMongo();
 		
 		// prepare unit under test
@@ -33,10 +33,61 @@ public class MongoDBItemWriterTest extends AbstractMongoDBTest {
 		writer.setMongo(mongod);
 		writer.setDb(DB_NAME);
 		writer.setCollection(COLLECTION_NAME);
+		writer.afterPropertiesSet();
 	}	
 	
 	@Test
+	public void should_write_nulled_list_transactional() throws Exception {
+		// when
+		writer.write(null);
+		
+		// then
+		assertCollectionCount(0);
+	}
+
+	@Test
+	public void should_write_empty_list_transactional() throws Exception {
+		// when
+		writer.write( new ArrayList<DBObject>() );
+		
+		// then
+		assertCollectionCount(0);
+	}
+
+	@Test
+	public void should_write_one_document_transactional() throws Exception {
+		// when
+		writer.write( createDocuments(1) );
+		
+		// then
+		assertCollectionCount(1);
+	}
+
+	@Test
+	public void should_write_multiple_documents_transactional() throws Exception {
+		// when
+		writer.write( createDocuments(10) );
+		
+		// then
+		assertCollectionCount(10);
+	}
+
+	@Test
+	public void should_write_converted_documents_transactional() throws Exception {
+		// given
+		writer.setConverter( new ObjectUserConverter() );
+		List<User> users = createUsers();
+		
+		// when
+		writer.write( users );
+		
+		// then
+		assertCollectionCount(3);
+	}
+
+	@Test
 	public void should_write_nulled_list() throws Exception {
+		writer.setTransactional(false);
 		// when
 		writer.write(null);
 		
@@ -46,6 +97,7 @@ public class MongoDBItemWriterTest extends AbstractMongoDBTest {
 
 	@Test
 	public void should_write_empty_list() throws Exception {
+		writer.setTransactional(false);
 		// when
 		writer.write( new ArrayList<DBObject>() );
 		
@@ -55,6 +107,7 @@ public class MongoDBItemWriterTest extends AbstractMongoDBTest {
 
 	@Test
 	public void should_write_one_document() throws Exception {
+		writer.setTransactional(false);
 		// when
 		writer.write( createDocuments(1) );
 		
@@ -64,6 +117,7 @@ public class MongoDBItemWriterTest extends AbstractMongoDBTest {
 
 	@Test
 	public void should_write_multiple_documents() throws Exception {
+		writer.setTransactional(false);
 		// when
 		writer.write( createDocuments(10) );
 		
@@ -73,6 +127,7 @@ public class MongoDBItemWriterTest extends AbstractMongoDBTest {
 
 	@Test
 	public void should_write_converted_documents() throws Exception {
+		writer.setTransactional(false);
 		// given
 		writer.setConverter( new ObjectUserConverter() );
 		List<User> users = createUsers();
