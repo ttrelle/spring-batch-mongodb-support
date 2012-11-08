@@ -119,6 +119,45 @@ public class TransactionAwareMongoDBWriter {
 		protected WriteConcern getWriteConcern() {
 			return writeConcern;
 		}
+
+		@Override
+		public int hashCode() {
+			final int prime = 31;
+			int result = 1;
+			result = prime * result
+					+ ((collection == null) ? 0 : collection.hashCode());
+			result = prime * result + ((db == null) ? 0 : db.hashCode());
+			result = prime * result
+					+ ((writeConcern == null) ? 0 : writeConcern.hashCode());
+			return result;
+		}
+
+		@Override
+		public boolean equals(Object obj) {
+			if (this == obj)
+				return true;
+			if (obj == null)
+				return false;
+			if (getClass() != obj.getClass())
+				return false;
+			MongoDBCollectionKey other = (MongoDBCollectionKey) obj;
+			if (collection == null) {
+				if (other.collection != null)
+					return false;
+			} else if (!collection.equals(other.collection))
+				return false;
+			if (db == null) {
+				if (other.db != null)
+					return false;
+			} else if (!db.equals(other.db))
+				return false;
+			if (writeConcern == null) {
+				if (other.writeConcern != null)
+					return false;
+			} else if (!writeConcern.equals(other.writeConcern))
+				return false;
+			return true;
+		}
 		
 	}
 }
