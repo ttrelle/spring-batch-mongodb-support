@@ -7,6 +7,7 @@ import static org.junit.Assert.fail;
 import java.io.IOException;
 
 import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.batch.core.ExitStatus;
@@ -20,6 +21,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
+import com.mongodb.BasicDBObject;
+import com.mongodb.DBCollection;
 import com.mongodb.Mongo;
 
 /**
@@ -44,6 +47,10 @@ public class MongoDBItemWriterIntegrationTest {
 	
 	@Autowired private Job job;
 	
+    @Before public void setUp() {
+    	collection().drop();
+    }	
+
     @Test
     public void should_write_to_collection() throws IOException {
 
@@ -51,21 +58,82 @@ public class MongoDBItemWriterIntegrationTest {
         JobParametersBuilder paramBuilder = new JobParametersBuilder();
         paramBuilder.addString("db", DB);
         paramBuilder.addString("collection", COLLECTION);
-
+        paramBuilder.addString("inputfile", "classpath:org/springframework/batch/item/mongodb/example/input.json");
+        paramBuilder.addString("transactional", "false");
+        
         try {
             // when ...
             JobExecution execution = launcher.run(job, paramBuilder.toJobParameters());
 
             // then ...
             assertThat(execution.getExitStatus(), is(ExitStatus.COMPLETED) );
+            assertCollectionCount(5);
+
+        } catch (JobExecutionException e) {
+            fail("Job Ausfuehrung scheitert wider Erwarten.");
+        }
+    }
+    
+    
+    @Test
+    public void should_write_to_collection_transactional() throws IOException {
+
+        // given
+        JobParametersBuilder paramBuilder = new JobParametersBuilder();
+        paramBuilder.addString("db", DB);
+        paramBuilder.addString("collection", COLLECTION);
+        paramBuilder.addString("inputfile", "classpath:org/springframework/batch/item/mongodb/example/input.json");
+        paramBuilder.addString("transactional", "true");
+        
+        try {
+            // when ...
+            JobExecution execution = launcher.run(job, paramBuilder.toJobParameters());
+
+            // then ...
+            assertThat(execution.getExitStatus(), is(ExitStatus.COMPLETED) );
+            assertCollectionCount(5);
 
         } catch (JobExecutionException e) {
             fail("Job Ausfuehrung scheitert wider Erwarten.");
         }
     }
 
-    @After public void tearDown() {
-    	mongod.getDB(DB).getCollection(COLLECTION).drop();
+    @Test
+    public void should_fail_after_first_committed_chunk() throws IOException {
+
+        // given
+        JobParametersBuilder paramBuilder = new JobParametersBuilder();
+        paramBuilder.addString("db", DB);
+        paramBuilder.addString("collection", COLLECTION);
+        paramBuilder.addString("inputfile", "classpath:org/springframework/batch/item/mongodb/example/input-indexviolation.json");
+        paramBuilder.addString("transactional", "true");
+        collection().ensureIndex( new BasicDBObject("a", 1) , "a_1", true);
+        
+        try {
+            // when ...
+            JobExecution execution = launcher.run(job, paramBuilder.toJobParameters());
+
+            // then ...
+            assertThat(execution.getExitStatus(), is(ExitStatus.COMPLETED) );
+            assertCollectionCount(3);
+
+        } catch (JobExecutionException e) {
+            fail("Job Ausfuehrung scheitert wider Erwarten.");
+        }
     }
+    
+    
+    
+    @After public void tearDown() {
+    	//collection().drop();
+    }	
 	
+    private DBCollection collection() {
+    	return mongod.getDB(DB).getCollection(COLLECTION);
+    }
+    
+	private void assertCollectionCount(long expected) {
+		assertThat(collection().count() ,is(expected));
+	}
+    
 }

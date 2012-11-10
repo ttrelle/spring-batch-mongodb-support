@@ -17,8 +17,7 @@ import com.mongodb.WriteConcern;
 /**
  * Delays actually writing to a MongoDB if a transaction is active.
  * 
- * @author tobias.flohre
- *
+ * @author Tobias Flohre
  */
 public class TransactionAwareMongoDBWriter {
 	

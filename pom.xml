@@ -18,6 +18,10 @@
 			<name>Tobias Trelle</name>
 			<email>tobias.trelle@codecentric.de</email>
 		</developer>
+		<developer>
+			<name>Tobias Flohre</name>
+			<email>tobias.flohre@codecentric.de</email>
+		</developer>
 	</developers>
 
 	<properties>

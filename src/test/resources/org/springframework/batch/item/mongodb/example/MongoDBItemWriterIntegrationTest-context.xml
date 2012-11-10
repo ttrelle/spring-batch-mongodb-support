@@ -23,7 +23,7 @@
 	<bean id="itemReader1"
 		class="org.springframework.batch.item.file.FlatFileItemReader"
 		scope="step" 
-		p:resource="classpath:org/springframework/batch/item/mongodb/example/input.json" 
+		p:resource="#{jobParameters['inputfile']}" 
 		>
 		<property name="lineMapper">
 			<bean class="org.springframework.batch.item.mongodb.example.JsonLineMapper"/>
@@ -36,7 +36,7 @@
 		p:mongo-ref="mongod" 
 		p:db="#{jobParameters['db']}"
 		p:collection="#{jobParameters['collection']}"
-		p:writeConcern="SAFE"
+		p:transactional="#{jobParameters['transactional']}"
 	/>
 
 	<batch:job id="mongodb-item-writer-example">
