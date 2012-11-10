@@ -8,11 +8,10 @@ import org.springframework.batch.item.support.AbstractItemStreamItemWriter;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.util.Assert;
 
-
-import com.mongodb.DBCollection;
 import com.mongodb.DBObject;
 import com.mongodb.Mongo;
 import com.mongodb.WriteConcern;
+import com.mongodb.WriteResult;
 
 /**
  * This item writer writes documents to a MongoDB collection.
@@ -31,6 +30,7 @@ import com.mongodb.WriteConcern;
  * <ul>
  * <li>{@link #converter}</li>
  * <li>{@link #writeConcern}</li>
+ * <li>{@link #transactional}</li>
  * </ul>
  * 
  * @author Tobias Trelle
@@ -39,7 +39,14 @@ public class MongoDBItemWriter
 	extends AbstractItemStreamItemWriter<Object> 
 	implements InitializingBean, ChunkListener {
 	
+	/** By default, a writer is transaction aware. */
 	private static final boolean DEFAULT_TRANSACTIONAL = true;
+	
+	/** 
+	 * By default, we check the write result after a chunk of documents is inserted.
+	 * We may get a better performance if you set this flag to <code>false</code>.
+	 */
+	private static final boolean DEFAULT_CHECK_WRITE_RESULT = true;
 	
 	// configurable attributes ......................................
 	
@@ -64,18 +71,26 @@ public class MongoDBItemWriter
 	 */
 	protected boolean transactional = DEFAULT_TRANSACTIONAL;
 	
+	/**
+	 * Flag to indicate if the write result should be checked for error
+	 * after writing a chunk of documents.
+	 */
+	protected boolean checkWriteResult = DEFAULT_CHECK_WRITE_RESULT;
+	
+	/** Delegate to delay insert operation until the end of the transaction. */
 	private TransactionAwareMongoDBWriter transactionAwareMongoDBWriter;
+	
 	
 	// public item writer interface .........................................
 	
 	@Override
 	public void write(List<? extends Object> items) throws Exception {
-		if (transactional){
-			transactionAwareMongoDBWriter.writeToCollection(db, collection, writeConcern, prepareDocuments(items));
+		final WriteConcern wc = writeConcern == null ? mongo.getWriteConcern() : writeConcern;
+		
+		if (transactional) {
+			transactionAwareMongoDBWriter.writeToCollection(db, collection, wc, prepareDocuments(items));
 		} else {
-			DBCollection coll = mongo.getDB(db).getCollection(collection);
-			WriteConcern wc = writeConcern == null ? coll.getWriteConcern() : writeConcern;
-			coll.insert(prepareDocuments(items), wc);
+			doInsert(db, collection, wc, prepareDocuments(items) );
 		}
 	}
 	
@@ -133,7 +148,7 @@ public class MongoDBItemWriter
 		Assert.notNull(mongo, "A Mongo instance is required");
 		Assert.hasText( db, "A database name is required" );
 		Assert.hasText( collection, "A collection name is required" );
-		transactionAwareMongoDBWriter = new TransactionAwareMongoDBWriter(mongo);
+		transactionAwareMongoDBWriter = new TransactionAwareMongoDBWriter(this);
 	}
 
 	@Override
@@ -143,11 +158,29 @@ public class MongoDBItemWriter
 
 	@Override
 	public void afterChunk() {
-		if (transactional && transactionAwareMongoDBWriter.getMongoDBFailure()!=null){
+		if (transactional && transactionAwareMongoDBWriter.getMongoDBFailure() != null) {
 			Throwable t = transactionAwareMongoDBWriter.getMongoDBFailure();
 			transactionAwareMongoDBWriter.resetMongoDBFailure();
-			throw new MongoDBInsertFailedException("Could not write to Mongo DB", t);
+			throw new MongoDBInsertFailedException(db, collection, "Could not insert document/s into collection", t);
 		}
 	}
 
+	/**
+	 * Perform the insert operation on the collection.
+	 * 
+	 * @param m Mongo connection pool,
+	 * @param databaseName Name of the database to use.
+	 * @param collectionName Name of the collection to use.
+	 * @param wc WriteConcern.
+	 * @param docs List of documents to insert.
+	 */
+	 void doInsert(String databaseName, String collectionName, WriteConcern wc, List<DBObject> docs) {
+		WriteResult wr = mongo.getDB(databaseName).getCollection(collectionName).insert(docs, wc);
+		
+		// strange: if no documents are written (list null or empty) the write result is also null
+		if ( checkWriteResult &&  wr != null && wr.getError() != null ) {
+			throw new MongoDBInsertFailedException(databaseName, collectionName, wr.getError() );
+		}
+	}
+	
 }

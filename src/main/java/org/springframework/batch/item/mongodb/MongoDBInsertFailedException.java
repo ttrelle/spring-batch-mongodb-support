@@ -1,8 +1,9 @@
 package org.springframework.batch.item.mongodb;
 
 /**
- * @author tobias.flohre
- *
+ * This exception is thrown when an insert operation on a collection fails.
+ * 
+ * @author Tobias Flohre
  */
 public class MongoDBInsertFailedException extends RuntimeException {
 
@@ -12,17 +13,20 @@ public class MongoDBInsertFailedException extends RuntimeException {
 		super();
 	}
 
+	public MongoDBInsertFailedException(String db, String collection, String message, Throwable cause) {
+		super(createMessage(db, collection, message), cause);
+	}
+
 	public MongoDBInsertFailedException(String message, Throwable cause) {
 		super(message, cause);
 	}
-
-	public MongoDBInsertFailedException(String message) {
-		super(message);
+ 
+	public MongoDBInsertFailedException(String db, String collection, String message) {
+		super(createMessage(db, collection, message));
 	}
 
-	public MongoDBInsertFailedException(Throwable cause) {
-		super(cause);
+	private static String createMessage(String db, String collection, String message) {
+		return "db=" + db + ", collection=" + collection + ": " + message;
 	}
-
 
 }

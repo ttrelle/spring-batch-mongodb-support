@@ -106,6 +106,30 @@ public class MongoDBItemWriterIntegrationTest {
         paramBuilder.addString("db", DB);
         paramBuilder.addString("collection", COLLECTION);
         paramBuilder.addString("inputfile", "classpath:org/springframework/batch/item/mongodb/example/input-indexviolation.json");
+        paramBuilder.addString("transactional", "false");
+        collection().ensureIndex( new BasicDBObject("a", 1) , "a_1", true);
+        
+        try {
+            // when ...
+            JobExecution execution = launcher.run(job, paramBuilder.toJobParameters());
+
+            // then ...
+            assertThat(execution.getExitStatus(), is(ExitStatus.FAILED) );
+            assertCollectionCount(3);
+
+        } catch (JobExecutionException e) {
+            fail("Job Ausfuehrung scheitert wider Erwarten.");
+        }
+    }
+    
+    @Test
+    public void should_fail_after_first_committed_chunk_transactional() throws IOException {
+
+        // given
+        JobParametersBuilder paramBuilder = new JobParametersBuilder();
+        paramBuilder.addString("db", DB);
+        paramBuilder.addString("collection", COLLECTION);
+        paramBuilder.addString("inputfile", "classpath:org/springframework/batch/item/mongodb/example/input-indexviolation.json");
         paramBuilder.addString("transactional", "true");
         collection().ensureIndex( new BasicDBObject("a", 1) , "a_1", true);
         
@@ -114,7 +138,7 @@ public class MongoDBItemWriterIntegrationTest {
             JobExecution execution = launcher.run(job, paramBuilder.toJobParameters());
 
             // then ...
-            assertThat(execution.getExitStatus(), is(ExitStatus.COMPLETED) );
+            assertThat(execution.getExitStatus(), is(ExitStatus.FAILED) );
             assertCollectionCount(3);
 
         } catch (JobExecutionException e) {
@@ -122,10 +146,8 @@ public class MongoDBItemWriterIntegrationTest {
         }
     }
     
-    
-    
     @After public void tearDown() {
-    	//collection().drop();
+    	collection().drop();
     }	
 	
     private DBCollection collection() {

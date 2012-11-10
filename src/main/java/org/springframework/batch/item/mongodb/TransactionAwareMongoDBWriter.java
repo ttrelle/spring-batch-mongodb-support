@@ -8,10 +8,9 @@ import java.util.Map.Entry;
 import org.springframework.core.NamedThreadLocal;
 import org.springframework.transaction.support.TransactionSynchronizationAdapter;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
+import org.springframework.util.Assert;
 
-import com.mongodb.DBCollection;
 import com.mongodb.DBObject;
-import com.mongodb.Mongo;
 import com.mongodb.WriteConcern;
 
 /**
@@ -23,18 +22,22 @@ public class TransactionAwareMongoDBWriter {
 	
 	private static final String MONGO_KEY_PREFIX = TransactionAwareMongoDBWriter.class.getName() + ".MONGO_KEY";
 
-	private Mongo mongo;
-	private String mongoKey;
 	private static final ThreadLocal<Throwable> mongoDbFailure =
 			new NamedThreadLocal<Throwable>("Mongo DB failure on insert");
 	
-	public TransactionAwareMongoDBWriter(Mongo mongo){
-		this.mongo = mongo;
+	private String mongoKey;
+	
+	private MongoDBItemWriter writer;
+	
+	public TransactionAwareMongoDBWriter(MongoDBItemWriter writer){
+		this.writer = writer;
 		this.mongoKey = MONGO_KEY_PREFIX + hashCode();
 	}
 	
-	public void writeToCollection(String db, String collection, WriteConcern writeConcern, List<DBObject> objectsToWrite){
-		if (transactionActive()){
+	public void writeToCollection(String db, String collection, WriteConcern writeConcern, List<DBObject> objectsToWrite) {
+		Assert.notNull(writeConcern, "Missing value for WriteConcern");
+		
+		if ( transactionActive() ) {
 			Map<MongoDBCollectionKey, List<DBObject>> objectsToWriteMap = getObjectsToWriteMap();
 			MongoDBCollectionKey dbCollectionKey = new MongoDBCollectionKey(db, collection, writeConcern);
 			List<DBObject> objectsToWriteList = objectsToWriteMap.get(dbCollectionKey);
@@ -43,10 +46,8 @@ public class TransactionAwareMongoDBWriter {
 			} else {
 				objectsToWriteList.addAll(objectsToWrite);
 			}
-		} else {
-			DBCollection coll = mongo.getDB(db).getCollection(collection);
-			WriteConcern wc = writeConcern == null ? coll.getWriteConcern() : writeConcern;
-			coll.insert(objectsToWrite, wc);
+		} else { // perform insert operation
+			writer.doInsert(db, collection, writeConcern, objectsToWrite);
 		}
 	}
 	
@@ -59,7 +60,7 @@ public class TransactionAwareMongoDBWriter {
 	}
 
 	@SuppressWarnings("unchecked")
-	private Map<MongoDBCollectionKey, List<DBObject>> getObjectsToWriteMap(){
+	private Map<MongoDBCollectionKey, List<DBObject>> getObjectsToWriteMap() {
 		if (!TransactionSynchronizationManager.hasResource(mongoKey)) {
 			TransactionSynchronizationManager.bindResource(mongoKey, new HashMap<MongoDBCollectionKey, List<DBObject>>());
 			TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronizationAdapter() {
@@ -88,10 +89,8 @@ public class TransactionAwareMongoDBWriter {
 
 				private void complete() {
 					Map<MongoDBCollectionKey, List<DBObject>> objectsToWriteMap = (Map<MongoDBCollectionKey, List<DBObject>>) TransactionSynchronizationManager.getResource(mongoKey);
-					for (Entry<MongoDBCollectionKey, List<DBObject>> entry: objectsToWriteMap.entrySet()){
-						DBCollection coll = mongo.getDB(entry.getKey().getDb()).getCollection(entry.getKey().getCollection());
-						WriteConcern wc = entry.getKey().getWriteConcern() == null ? coll.getWriteConcern() : entry.getKey().getWriteConcern();
-						coll.insert(entry.getValue(), wc);
+					for (Entry<MongoDBCollectionKey, List<DBObject>> entry: objectsToWriteMap.entrySet()) {
+						writer.doInsert(entry.getKey().getDb(), entry.getKey().getCollection(), entry.getKey().getWriteConcern(), entry.getValue() );
 					}
 				}
 				
@@ -108,7 +107,7 @@ public class TransactionAwareMongoDBWriter {
 	}
 
 	
-	private static class MongoDBCollectionKey{
+	private static class MongoDBCollectionKey {
 		private String db;
 		private String collection;
 		private WriteConcern writeConcern;
