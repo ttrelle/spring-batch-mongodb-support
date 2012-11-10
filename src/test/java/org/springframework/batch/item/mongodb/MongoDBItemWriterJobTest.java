@@ -90,6 +90,12 @@ public class MongoDBItemWriterJobTest extends AbstractMongoDBTest {
         }
     }
 
+    /**
+     * Notice that this job fails on the 2nd document of the 2nd chunk (commit-interval is 3).
+     * 4 Documents are inserted because there is no rollback.
+     * 
+     * @throws IOException
+     */
     @Test
     public void should_fail_after_first_committed_chunk() throws IOException {
 
@@ -99,7 +105,7 @@ public class MongoDBItemWriterJobTest extends AbstractMongoDBTest {
         paramBuilder.addString("collection", COLLECTION_NAME);
         paramBuilder.addString("inputfile", "classpath:org/springframework/batch/item/mongodb/input-indexviolation.json");
         paramBuilder.addString("transactional", "false");
-        collection.ensureIndex( new BasicDBObject("a", 1) , "a_1", true);
+        collection.ensureIndex( new BasicDBObject("a", 1) , "a_1", true); // unique index on key a
         
         try {
             // when ...
@@ -107,13 +113,19 @@ public class MongoDBItemWriterJobTest extends AbstractMongoDBTest {
 
             // then ...
             assertThat(execution.getExitStatus(), is(ExitStatus.FAILED) );
-            assertCollectionCount(3);
+            assertCollectionCount(4);
 
         } catch (JobExecutionException e) {
             fail("Job execution failed");
         }
     }
     
+    /**
+     * Notice that this job fails on the 2nd document of the 2nd chunk (commit-interval is 3).
+     * 4 Documents are inserted because there is no rollback.
+     * 
+     * @throws IOException
+     */
     @Test
     public void should_fail_after_first_committed_chunk_transactional() throws IOException {
 
@@ -123,7 +135,7 @@ public class MongoDBItemWriterJobTest extends AbstractMongoDBTest {
         paramBuilder.addString("collection", COLLECTION_NAME);
         paramBuilder.addString("inputfile", "classpath:org/springframework/batch/item/mongodb/input-indexviolation.json");
         paramBuilder.addString("transactional", "true");
-        collection.ensureIndex( new BasicDBObject("a", 1) , "a_1", true);
+        collection.ensureIndex( new BasicDBObject("a", 1) , "a_1", true);  // unique index on key a
         
         try {
             // when ...
@@ -131,7 +143,7 @@ public class MongoDBItemWriterJobTest extends AbstractMongoDBTest {
 
             // then ...
             assertThat(execution.getExitStatus(), is(ExitStatus.FAILED) );
-            assertCollectionCount(3);
+            assertCollectionCount(4);
 
         } catch (JobExecutionException e) {
             fail("Job execution failed");
