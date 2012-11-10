@@ -1,10 +1,11 @@
-package org.springframework.batch.item.mongodb.example;
+package org.springframework.batch.item.mongodb;
 
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 
 import java.io.IOException;
+import java.net.UnknownHostException;
 
 import org.junit.After;
 import org.junit.Before;
@@ -16,14 +17,11 @@ import org.springframework.batch.core.JobExecution;
 import org.springframework.batch.core.JobExecutionException;
 import org.springframework.batch.core.JobParametersBuilder;
 import org.springframework.batch.core.launch.JobLauncher;
-import org.springframework.batch.item.mongodb.MongoDBItemWriter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 import com.mongodb.BasicDBObject;
-import com.mongodb.DBCollection;
-import com.mongodb.Mongo;
 
 /**
  * Integration tests for the {@link MongoDBItemWriter}.
@@ -35,20 +33,14 @@ import com.mongodb.Mongo;
  */
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration
-public class MongoDBItemWriterIntegrationTest {
-	
-	private static final String DB = "test";
-	
-	private static final String COLLECTION = "foo";
-	
-	@Autowired Mongo mongod;
+public class MongoDBItemWriterJobTest extends AbstractMongoDBTest {
 	
 	@Autowired private JobLauncher launcher;
 	
 	@Autowired private Job job;
 	
-    @Before public void setUp() {
-    	collection().drop();
+    @Before public void setUp() throws UnknownHostException {
+    	setUpMongo();
     }	
 
     @Test
@@ -56,9 +48,9 @@ public class MongoDBItemWriterIntegrationTest {
 
         // given
         JobParametersBuilder paramBuilder = new JobParametersBuilder();
-        paramBuilder.addString("db", DB);
-        paramBuilder.addString("collection", COLLECTION);
-        paramBuilder.addString("inputfile", "classpath:org/springframework/batch/item/mongodb/example/input.json");
+        paramBuilder.addString("db", DB_NAME);
+        paramBuilder.addString("collection", COLLECTION_NAME);
+        paramBuilder.addString("inputfile", "classpath:org/springframework/batch/item/mongodb/input.json");
         paramBuilder.addString("transactional", "false");
         
         try {
@@ -70,7 +62,7 @@ public class MongoDBItemWriterIntegrationTest {
             assertCollectionCount(5);
 
         } catch (JobExecutionException e) {
-            fail("Job Ausfuehrung scheitert wider Erwarten.");
+            fail("Job execution failed");
         }
     }
     
@@ -80,9 +72,9 @@ public class MongoDBItemWriterIntegrationTest {
 
         // given
         JobParametersBuilder paramBuilder = new JobParametersBuilder();
-        paramBuilder.addString("db", DB);
-        paramBuilder.addString("collection", COLLECTION);
-        paramBuilder.addString("inputfile", "classpath:org/springframework/batch/item/mongodb/example/input.json");
+        paramBuilder.addString("db", DB_NAME);
+        paramBuilder.addString("collection", COLLECTION_NAME);
+        paramBuilder.addString("inputfile", "classpath:org/springframework/batch/item/mongodb/input.json");
         paramBuilder.addString("transactional", "true");
         
         try {
@@ -94,7 +86,7 @@ public class MongoDBItemWriterIntegrationTest {
             assertCollectionCount(5);
 
         } catch (JobExecutionException e) {
-            fail("Job Ausfuehrung scheitert wider Erwarten.");
+            fail("Job execution failed");
         }
     }
 
@@ -103,11 +95,11 @@ public class MongoDBItemWriterIntegrationTest {
 
         // given
         JobParametersBuilder paramBuilder = new JobParametersBuilder();
-        paramBuilder.addString("db", DB);
-        paramBuilder.addString("collection", COLLECTION);
-        paramBuilder.addString("inputfile", "classpath:org/springframework/batch/item/mongodb/example/input-indexviolation.json");
+        paramBuilder.addString("db", DB_NAME);
+        paramBuilder.addString("collection", COLLECTION_NAME);
+        paramBuilder.addString("inputfile", "classpath:org/springframework/batch/item/mongodb/input-indexviolation.json");
         paramBuilder.addString("transactional", "false");
-        collection().ensureIndex( new BasicDBObject("a", 1) , "a_1", true);
+        collection.ensureIndex( new BasicDBObject("a", 1) , "a_1", true);
         
         try {
             // when ...
@@ -118,7 +110,7 @@ public class MongoDBItemWriterIntegrationTest {
             assertCollectionCount(3);
 
         } catch (JobExecutionException e) {
-            fail("Job Ausfuehrung scheitert wider Erwarten.");
+            fail("Job execution failed");
         }
     }
     
@@ -127,11 +119,11 @@ public class MongoDBItemWriterIntegrationTest {
 
         // given
         JobParametersBuilder paramBuilder = new JobParametersBuilder();
-        paramBuilder.addString("db", DB);
-        paramBuilder.addString("collection", COLLECTION);
-        paramBuilder.addString("inputfile", "classpath:org/springframework/batch/item/mongodb/example/input-indexviolation.json");
+        paramBuilder.addString("db", DB_NAME);
+        paramBuilder.addString("collection", COLLECTION_NAME);
+        paramBuilder.addString("inputfile", "classpath:org/springframework/batch/item/mongodb/input-indexviolation.json");
         paramBuilder.addString("transactional", "true");
-        collection().ensureIndex( new BasicDBObject("a", 1) , "a_1", true);
+        collection.ensureIndex( new BasicDBObject("a", 1) , "a_1", true);
         
         try {
             // when ...
@@ -142,20 +134,12 @@ public class MongoDBItemWriterIntegrationTest {
             assertCollectionCount(3);
 
         } catch (JobExecutionException e) {
-            fail("Job Ausfuehrung scheitert wider Erwarten.");
+            fail("Job execution failed");
         }
     }
     
     @After public void tearDown() {
-    	collection().drop();
+    	tearDownMongo();
     }	
 	
-    private DBCollection collection() {
-    	return mongod.getDB(DB).getCollection(COLLECTION);
-    }
-    
-	private void assertCollectionCount(long expected) {
-		assertThat(collection().count() ,is(expected));
-	}
-    
 }

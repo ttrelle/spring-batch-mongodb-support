@@ -13,11 +13,8 @@
 	<!-- Batch infrastructure -->
 	<import resource="batch-test-context.xml"/>
 
-	<!-- MongoDB connection -->
-	<bean id="mongod" class="com.mongodb.Mongo">
-		<constructor-arg index="0" value="localhost" />
-		<constructor-arg index="1" value="27017" />
-	</bean>
+	<!-- mongod host -->
+	<import resource="mongod-context.xml"/>
 
 	<!-- Item Reader -->
 	<bean id="itemReader1"
@@ -33,7 +30,7 @@
 		scope="step">
 		<property name="resource" value="#{jobParameters['outputFile']}" />
 		<property name="lineAggregator">
-			<bean class="org.springframework.batch.item.mongodb.example.JsonLineAggregator" />
+			<bean class="org.springframework.batch.item.mongodb.JsonLineAggregator" />
 		</property>
 	</bean>
 

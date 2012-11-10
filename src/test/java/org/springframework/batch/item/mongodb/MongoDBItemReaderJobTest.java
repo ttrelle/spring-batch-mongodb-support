@@ -1,4 +1,4 @@
-package org.springframework.batch.item.mongodb.example;
+package org.springframework.batch.item.mongodb;
 
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;
@@ -6,6 +6,7 @@ import static org.junit.Assert.fail;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.UnknownHostException;
 
 import org.junit.After;
 import org.junit.Before;
@@ -17,14 +18,9 @@ import org.springframework.batch.core.JobExecution;
 import org.springframework.batch.core.JobExecutionException;
 import org.springframework.batch.core.JobParametersBuilder;
 import org.springframework.batch.core.launch.JobLauncher;
-import org.springframework.batch.item.mongodb.MongoDBItemReader;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
-
-import com.mongodb.BasicDBObject;
-import com.mongodb.DBCollection;
-import com.mongodb.Mongo;
 
 /**
  * Integration test for the {@link MongoDBItemReader}.
@@ -36,22 +32,17 @@ import com.mongodb.Mongo;
  */
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration
-public class MongoDBItemReaderIntegrationTest {
-	
-	private static final String DB = "test";
-	
-	private static final String COLLECTION = "foo";
-	
-	@Autowired Mongo mongod;
-	
+public class MongoDBItemReaderJobTest extends AbstractMongoDBTest {
+
 	@Autowired private JobLauncher launcher;
 	
 	@Autowired private Job job;
 
-	@Before public void setUp() {
-		DBCollection collection = mongod.getDB(DB).getCollection(COLLECTION);
+	@Before public void setUp() throws UnknownHostException {
+		setUpMongo();
+		
 		for(int i =0;i<10;i++) {
-			collection.insert(new BasicDBObject("i", i));
+			insert("{i: " + i + "}");
 		}
 	}
 	
@@ -62,8 +53,8 @@ public class MongoDBItemReaderIntegrationTest {
         JobParametersBuilder paramBuilder = new JobParametersBuilder();
         String tempDatei = createTempFile();
         paramBuilder.addString("outputFile", "file:/" + tempDatei);
-        paramBuilder.addString("db", DB);
-        paramBuilder.addString("collection", COLLECTION);
+        paramBuilder.addString("db", DB_NAME);
+        paramBuilder.addString("collection", COLLECTION_NAME);
 
         System.out.println("Job output file: " + tempDatei);
 
@@ -75,12 +66,12 @@ public class MongoDBItemReaderIntegrationTest {
             assertThat(execution.getExitStatus(), is(ExitStatus.COMPLETED) );
 
         } catch (JobExecutionException e) {
-            fail("Job Ausfuehrung scheitert wider Erwarten.");
+            fail("Job execution failed");
         }
     }
 
     @After public void tearDown() {
-    	mongod.getDB(DB).getCollection(COLLECTION).drop();
+    	tearDownMongo();
     }
     
     private String createTempFile() throws IOException {

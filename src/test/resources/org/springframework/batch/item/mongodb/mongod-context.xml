@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns="http://www.springframework.org/schema/beans" 
+	xsi:schemaLocation="
+		http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+	">
+
+	<!-- MongoDB connection -->
+	<bean id="mongod" class="com.mongodb.Mongo">
+		<constructor-arg index="0" value="#{ systemProperties['host'] ?: 'localhost' }" />
+		<constructor-arg index="1" value="#{ systemProperties['port'] ?: 27017 }" />
+	</bean>
+
+</beans>

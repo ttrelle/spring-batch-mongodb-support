@@ -22,10 +22,10 @@ standard port 27017. You can override the location to your MongoDB server by pas
 
 There are examples how to use the reader and writer in your batch jobs:
 
-* [MongoDBItemReaderIntegrationTest](https://github.com/ttrelle/spring-batch-mongodb-support/blob/master/src/test/java/org/springframework/batch/item/mongodb/example/MongoDBItemReaderIntegrationTest.java) and
-  [MongoDBItemReaderIntegrationTest-context.xml](https://github.com/ttrelle/spring-batch-mongodb-support/blob/master/src/test/resources/org/springframework/batch/item/mongodb/example/MongoDBItemReaderIntegrationTest-context.xml)
-* [MongoDBItemWriterIntegrationTest](https://github.com/ttrelle/spring-batch-mongodb-support/blob/master/src/test/java/org/springframework/batch/item/mongodb/example/MongoDBItemWriterIntegrationTest.java) and
-  [MongoDBItemWriterIntegrationTest-context.xml](https://github.com/ttrelle/spring-batch-mongodb-support/blob/master/src/test/resources/org/springframework/batch/item/mongodb/example/MongoDBItemWriterIntegrationTest-context.xml)
+* [MongoDBItemReaderJobTest](https://github.com/ttrelle/spring-batch-mongodb-support/blob/master/src/test/java/org/springframework/batch/item/mongodb/MongoDBItemReaderJobTest.java) and
+  [MongoDBItemReaderJobTest-context.xml](https://github.com/ttrelle/spring-batch-mongodb-support/blob/master/src/test/resources/org/springframework/batch/item/mongodb/MongoDBItemReaderJobTest-context.xml)
+* [MongoDBItemWriterJobTest](https://github.com/ttrelle/spring-batch-mongodb-support/blob/master/src/test/java/org/springframework/batch/item/mongodb/MongoDBItemWriterJobTest.java) and
+  [MongoDBItemWriterJobTest-context.xml](https://github.com/ttrelle/spring-batch-mongodb-support/blob/master/src/test/resources/org/springframework/batch/item/mongodb/MongoDBItemWriterJobTest-context.xml)
 
 ## Dependencies
 
