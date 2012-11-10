@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns="http://www.springframework.org/schema/beans" 
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:p="http://www.springframework.org/schema/p" 
+	xmlns:batch="http://www.springframework.org/schema/batch"
+	xsi:schemaLocation="
+		http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+		http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd
+		http://www.springframework.org/schema/batch http://www.springframework.org/schema/batch/spring-batch-2.1.xsd
+	">
+
+	<!-- Batch infrastructure -->
+	<import resource="batch-test-context.xml"/>
+
+	<!-- mongod host -->
+	<import resource="mongod-context.xml"/>
+
+	<!-- Item Reader -->
+	<bean id="itemReader1"
+		class="org.springframework.batch.item.file.FlatFileItemReader"
+		scope="step" 
+		p:resource="#{jobParameters['inputfile']}" 
+		>
+		<property name="lineMapper">
+			<bean class="org.springframework.batch.item.mongodb.JsonLineMapper"/>
+		</property>
+	</bean>
+	
+	<!-- Writers -->
+	<bean id="mongodb-writer" class="org.springframework.batch.item.mongodb.MongoDBItemWriter"
+		scope="step"
+		p:mongo-ref="mongod" 
+		p:db="#{jobParameters['db']}"
+		p:collection="#{jobParameters['collection']}"
+		p:transactional="#{jobParameters['transactional']}"
+	/>
+	<bean id="jdbc-writer" class="org.springframework.batch.item.database.JdbcBatchItemWriter"
+		scope="step"
+		p:dataSource-ref="dataSource"
+		p:sql="INSERT INTO missing_table (id) VALUES (?)"
+		p:itemPreparedStatementSetter-ref="dummy-setter"
+	/>
+	<bean id="dummy-setter" class="org.springframework.batch.item.mongodb.DummyStatementSetter" />
+	
+	<bean id="composite-writer" class="org.springframework.batch.item.support.CompositeItemWriter">
+		<property name="delegates">
+		<list>
+			<ref bean="mongodb-writer" />
+			<ref bean="jdbc-writer" />
+		</list>
+		</property>
+	</bean>
+
+	<batch:job id="multi-item-writer-example">
+
+		<batch:step id="write-collection">
+			<batch:tasklet>
+				<batch:chunk reader="itemReader1" writer="composite-writer"
+					commit-interval="3" />
+			</batch:tasklet>
+		</batch:step>
+	</batch:job>
+
+</beans>
