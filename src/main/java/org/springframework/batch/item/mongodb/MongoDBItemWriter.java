@@ -4,8 +4,10 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.springframework.batch.core.ChunkListener;
-import org.springframework.batch.item.support.AbstractItemStreamItemWriter;
+import org.springframework.batch.item.ItemWriter;
 import org.springframework.beans.factory.InitializingBean;
+import org.springframework.transaction.support.TransactionSynchronizationAdapter;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.util.Assert;
 
 import com.mongodb.DBObject;
@@ -35,9 +37,7 @@ import com.mongodb.WriteResult;
  * 
  * @author Tobias Trelle
  */
-public class MongoDBItemWriter 
-	extends AbstractItemStreamItemWriter<Object> 
-	implements InitializingBean, ChunkListener {
+public class MongoDBItemWriter implements ItemWriter<Object>, InitializingBean, ChunkListener {
 	
 	/** By default, a writer is transaction aware. */
 	private static final boolean DEFAULT_TRANSACTIONAL = true;
@@ -77,18 +77,31 @@ public class MongoDBItemWriter
 	 */
 	protected boolean checkWriteResult = DEFAULT_CHECK_WRITE_RESULT;
 	
-	/** Delegate to delay insert operation until the end of the transaction. */
-	private TransactionAwareMongoDBWriter transactionAwareMongoDBWriter;
+	private List<DBObject> dbObjectCache = null;
 	
-	
+	private Throwable mongoDbFailure = null;
+
 	// public item writer interface .........................................
 	
 	@Override
 	public void write(List<? extends Object> items) throws Exception {
 		final WriteConcern wc = writeConcern == null ? mongo.getWriteConcern() : writeConcern;
 		
-		if (transactional) {
-			transactionAwareMongoDBWriter.writeToCollection(db, collection, wc, prepareDocuments(items));
+		if (transactional && TransactionSynchronizationManager.isActualTransactionActive()) {
+			dbObjectCache = prepareDocuments(items);
+			TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronizationAdapter() {
+
+				@Override
+				public void afterCommit() {
+					try {
+						doInsert(db, collection, wc, dbObjectCache);
+					}
+					catch (Throwable t) {
+						mongoDbFailure = t;
+					}
+				}
+
+			});
 		} else {
 			doInsert(db, collection, wc, prepareDocuments(items) );
 		}
@@ -148,7 +161,6 @@ public class MongoDBItemWriter
 		Assert.notNull(mongo, "A Mongo instance is required");
 		Assert.hasText( db, "A database name is required" );
 		Assert.hasText( collection, "A collection name is required" );
-		transactionAwareMongoDBWriter = new TransactionAwareMongoDBWriter(this);
 	}
 
 	@Override
@@ -158,10 +170,13 @@ public class MongoDBItemWriter
 
 	@Override
 	public void afterChunk() {
-		if (transactional && transactionAwareMongoDBWriter.getMongoDBFailure() != null) {
-			Throwable t = transactionAwareMongoDBWriter.getMongoDBFailure();
-			transactionAwareMongoDBWriter.resetMongoDBFailure();
-			throw new MongoDBInsertFailedException(db, collection, "Could not insert document/s into collection", t);
+		dbObjectCache = null;
+		if (mongoDbFailure != null){
+			if (mongoDbFailure instanceof MongoDBInsertFailedException){
+				throw (MongoDBInsertFailedException)mongoDbFailure;
+			} else {
+				throw new MongoDBInsertFailedException(db, collection, "Could not insert document/s into collection", mongoDbFailure);
+			}
 		}
 	}
 
