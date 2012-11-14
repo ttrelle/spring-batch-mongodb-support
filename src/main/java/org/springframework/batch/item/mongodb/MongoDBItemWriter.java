@@ -183,7 +183,6 @@ public class MongoDBItemWriter implements ItemWriter<Object>, InitializingBean, 
 	/**
 	 * Perform the insert operation on the collection.
 	 * 
-	 * @param m Mongo connection pool,
 	 * @param databaseName Name of the database to use.
 	 * @param collectionName Name of the collection to use.
 	 * @param wc WriteConcern.
