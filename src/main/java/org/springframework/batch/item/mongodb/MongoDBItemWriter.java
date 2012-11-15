@@ -193,12 +193,16 @@ public class MongoDBItemWriter implements ItemWriter<Object>, InitializingBean, 
 
 	@Override
 	public void afterChunk() {
-		if (mongoDbFailure != null){
-			if (mongoDbFailure instanceof MongoDBInsertFailedException){
-				throw (MongoDBInsertFailedException)mongoDbFailure;
-			} else {
-				throw new MongoDBInsertFailedException(db, collection, "Could not insert document/s into collection", mongoDbFailure);
+		try {
+			if (mongoDbFailure != null){
+				if (mongoDbFailure instanceof MongoDBInsertFailedException){
+					throw (MongoDBInsertFailedException)mongoDbFailure;
+				} else {
+					throw new MongoDBInsertFailedException(db, collection, "Could not insert document/s into collection", mongoDbFailure);
+				}
 			}
+		} finally {
+			mongoDbFailure = null;
 		}
 	}
 
