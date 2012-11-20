@@ -6,6 +6,7 @@ import java.util.List;
 import org.springframework.batch.core.ChunkListener;
 import org.springframework.batch.item.ItemWriter;
 import org.springframework.beans.factory.InitializingBean;
+import org.springframework.core.convert.converter.Converter;
 import org.springframework.transaction.support.TransactionSynchronizationAdapter;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.util.Assert;
@@ -60,7 +61,7 @@ public class MongoDBItemWriter implements ItemWriter<Object>, InitializingBean, 
 	protected String collection;
 	
 	/** Custom converter (optional). */
-	protected ObjectDocumentConverter converter;
+	protected Converter<Object, DBObject> converter;
 	
 	/** Overwrite the write concern of the target collection (optional). */
 	protected WriteConcern writeConcern;
@@ -140,7 +141,7 @@ public class MongoDBItemWriter implements ItemWriter<Object>, InitializingBean, 
 		this.collection = collection;
 	}
 	
-	public void setConverter(ObjectDocumentConverter converter) {
+	public void setConverter(Converter<Object, DBObject> converter) {
 		this.converter = converter;
 	}
 

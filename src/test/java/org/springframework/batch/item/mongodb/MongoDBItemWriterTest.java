@@ -6,6 +6,7 @@ import java.util.List;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.springframework.core.convert.converter.Converter;
 
 import com.mongodb.BasicDBObject;
 import com.mongodb.DBObject;
@@ -224,7 +225,7 @@ public class MongoDBItemWriterTest extends AbstractMongoDBTest {
 		return users;
 	}	
 	
-	private class ObjectUserConverter implements ObjectDocumentConverter {
+	private class ObjectUserConverter implements Converter<Object, DBObject> {
 
 		@Override
 		public DBObject convert(Object o) {
