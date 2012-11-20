@@ -11,6 +11,7 @@ import java.util.List;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.springframework.core.convert.converter.Converter;
 
 import com.mongodb.DBObject;
 
@@ -368,7 +369,7 @@ public class MongoDBItemReaderTest extends AbstractMongoDBTest {
 		return docs;
 	}	
 	
-	private class DocumentUserConverter implements DocumentObjectConverter<User> {
+	private class DocumentUserConverter implements Converter<DBObject, User> {
 
 		@Override
 		public User convert(DBObject document) {

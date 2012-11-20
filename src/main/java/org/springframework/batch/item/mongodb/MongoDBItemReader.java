@@ -4,6 +4,7 @@ import java.util.List;
 
 import org.springframework.batch.item.support.AbstractItemCountingItemStreamItemReader;
 import org.springframework.beans.factory.InitializingBean;
+import org.springframework.core.convert.converter.Converter;
 import org.springframework.util.Assert;
 import org.springframework.util.ClassUtils;
 import org.springframework.util.StringUtils;
@@ -80,7 +81,7 @@ public class MongoDBItemReader
 	protected String keys;
 	
 	/** Custom converter to map {@DBObject}s to Java POJOs (optional). */
-	protected DocumentObjectConverter<?> converter;
+	protected Converter<DBObject, ?> converter;
 
 	/** 
 	 * Number of documents to read in one batch (optional).
@@ -246,7 +247,7 @@ public class MongoDBItemReader
 		this.keys = keys;
 	}
 	
-	public void setConverter(DocumentObjectConverter<?> converter) {
+	public void setConverter(Converter<DBObject, ?> converter) {
 		this.converter = converter;
 	}
 	
