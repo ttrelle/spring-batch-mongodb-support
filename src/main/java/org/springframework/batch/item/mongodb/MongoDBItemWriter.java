@@ -188,7 +188,7 @@ public class MongoDBItemWriter implements ItemWriter<Object>, InitializingBean, 
 	 * @param wc WriteConcern.
 	 * @param docs List of documents to insert.
 	 */
-	 void doInsert(String databaseName, String collectionName, WriteConcern wc, List<DBObject> docs) {
+	 protected void doInsert(String databaseName, String collectionName, WriteConcern wc, List<DBObject> docs) {
 		WriteResult wr = mongo.getDB(databaseName).getCollection(collectionName).insert(docs, wc);
 		
 		// strange: if no documents are written (list null or empty) the write result is also null
