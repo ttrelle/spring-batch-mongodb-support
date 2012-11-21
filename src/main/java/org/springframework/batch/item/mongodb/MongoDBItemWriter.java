@@ -36,7 +36,27 @@ import com.mongodb.WriteResult;
  * <li>{@link #transactional}</li>
  * </ul>
  * 
- * @author Tobias Trelle
+ * MongoDB does not support transactions, but we have a {@link #transactional} flag here. What is it supposed to do?
+ * Spring Batch has a very strong transactional model, which is important for features like restart, skip and retry.
+ * We cannot use these features with MongoDB, because MongoDB is not transactional. If there's an error while 
+ * writing, it may be that some items have been written to disk and some not.
+ * Since we cannot change that behaviour, our goal is now to isolate the one case that makes it impossible to use
+ * Spring Batch features like restart, skip and retry. We want one dedicated error situation that tells us that
+ * something went wrong with a MongoDB insertion and we cannot be sure about transactional safety, so we better
+ * check and definitely not use restart. In all other cases we are safe to use restart, skip and retry. This error 
+ * situation is throwing a {@link MongoDBInsertFailedException}.
+ * In short: when {@link #transactional} is set to {@code true} and there is no {@link MongoDBInsertFailedException} 
+ * involved, you're safe to use restart, skip and retry. Of course, this makes more sense when combining different
+ * resources in a job.
+ * How does it work?
+ * When {@link #transactional} is set to {@code true}, this writer builds up a cache of {@link com.mongodb.DBObject}s 
+ * to write and delays writing them to MongoDB until the transaction has been successfully committed. We make use of Spring's 
+ * transaction synchronization features here. Because exceptions in transaction synchronizations do not get propagated,
+ * we catch a potential throwable and use a {@link org.springframework.batch.core.ChunkListener} to re-throw it.  
+ * 
+ * When {@link #transactional} is set to {@code true}, this writer is *not* thread-safe.
+ * 
+ * @author Tobias Trelle, Tobias Flohre
  */
 public class MongoDBItemWriter implements ItemWriter<Object>, InitializingBean, ChunkListener {
 	
@@ -93,12 +113,15 @@ public class MongoDBItemWriter implements ItemWriter<Object>, InitializingBean, 
 			TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronizationAdapter() {
 
 				@Override
-				public void afterCommit() {
+				public void afterCompletion(int status) {
 					try {
-						doInsert(db, collection, wc, dbObjectCache);
-					}
-					catch (Throwable t) {
+						if (status == STATUS_COMMITTED) {
+							doInsert(db, collection, wc, dbObjectCache);
+						}
+					} catch (Throwable t) {
 						mongoDbFailure = t;
+					} finally {
+						dbObjectCache = null;
 					}
 				}
 
@@ -171,13 +194,16 @@ public class MongoDBItemWriter implements ItemWriter<Object>, InitializingBean, 
 
 	@Override
 	public void afterChunk() {
-		dbObjectCache = null;
-		if (mongoDbFailure != null){
-			if (mongoDbFailure instanceof MongoDBInsertFailedException){
-				throw (MongoDBInsertFailedException)mongoDbFailure;
-			} else {
-				throw new MongoDBInsertFailedException(db, collection, "Could not insert document/s into collection", mongoDbFailure);
+		try {
+			if (mongoDbFailure != null){
+				if (mongoDbFailure instanceof MongoDBInsertFailedException){
+					throw (MongoDBInsertFailedException)mongoDbFailure;
+				} else {
+					throw new MongoDBInsertFailedException(db, collection, "Could not insert document/s into collection", mongoDbFailure);
+				}
 			}
+		} finally {
+			mongoDbFailure = null;
 		}
 	}
 
