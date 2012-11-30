@@ -12,7 +12,7 @@ import java.util.List;
 import com.mongodb.BasicDBObject;
 import com.mongodb.DBCollection;
 import com.mongodb.DBObject;
-import com.mongodb.Mongo;
+import com.mongodb.MongoClient;
 import com.mongodb.WriteConcern;
 import com.mongodb.util.JSON;
 
@@ -34,13 +34,13 @@ public abstract class AbstractMongoDBTest {
 	
 	protected static final String COLLECTION_NAME = "user";
 	
-	protected Mongo mongod;
+	protected MongoClient mongod;
 	
 	protected DBCollection collection;
 	
 	protected void setUpMongo() throws UnknownHostException {
 		// set up collection
-		mongod = new Mongo(MONGOD_HOST, MONGOD_PORT);
+		mongod = new MongoClient(MONGOD_HOST, MONGOD_PORT);
 		collection = mongod.getDB(DB_NAME).createCollection(COLLECTION_NAME, null);
 		// create an empty collection requires an insert and a remove
 		collection.insert(new BasicDBObject());

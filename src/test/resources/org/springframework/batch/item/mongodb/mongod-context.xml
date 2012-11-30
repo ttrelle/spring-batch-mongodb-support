@@ -6,7 +6,7 @@
 	">
 
 	<!-- MongoDB connection -->
-	<bean id="mongod" class="com.mongodb.Mongo">
+	<bean id="mongod" class="com.mongodb.MongoClient">
 		<constructor-arg index="0" value="#{ systemProperties['host'] ?: 'localhost' }" />
 		<constructor-arg index="1" value="#{ systemProperties['port'] ?: 27017 }" />
 	</bean>
