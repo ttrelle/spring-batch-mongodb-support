@@ -180,6 +180,10 @@ public class MongoDBItemWriter implements ItemWriter<Object>, InitializingBean, 
 		this.transactional = transactional;
 	}
 
+	public void setCheckWriteResult(boolean checkWriteResult) {
+		this.checkWriteResult = checkWriteResult;
+	}
+
 	@Override
 	public void afterPropertiesSet() throws Exception {
 		Assert.notNull(mongo, "A Mongo instance is required");
