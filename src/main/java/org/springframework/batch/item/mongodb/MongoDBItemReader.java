@@ -43,6 +43,7 @@ import com.mongodb.util.JSONParseException;
  * 		interface.</li>
  * <li>{@link #sort}: Optional sort criteria.</li>
  * <li>{@link #limit}: Optional limit for amounts of read documents.</li>
+ * <li>{@link #skip}: Optional: skip the first n documents.</li>
  * <li>{@link #batchSize}: Size of batch reads.</li>
  * <li>{@link #snapshot}: Use a query snapshot or not.</li>
  * </ul>
@@ -107,6 +108,12 @@ public class MongoDBItemReader
 	 */
 	protected int limit;
 	
+	/**
+	 * Skip the first n document in the query result (optional).
+	 * @see DBCursor#skip(int)
+	 */
+	protected int skip;
+	
 	
 	// internally used attributes ......................................
 	
@@ -127,7 +134,7 @@ public class MongoDBItemReader
 			throw new IllegalArgumentException("Index must not be negative: " + itemIndex);
 		}
 		
-		cursor.skip(itemIndex);
+		cursor.skip(itemIndex + skip);
 	}
 
 	@Override
@@ -212,6 +219,10 @@ public class MongoDBItemReader
 			crsr = crsr.limit(limit);
 		}
 		
+		if ( skip > 0 ) {
+			crsr = crsr.skip(skip);
+		}
+		
 		return crsr;
 	}
 	
@@ -265,6 +276,10 @@ public class MongoDBItemReader
 
 	public void setLimit(int limit) {
 		this.limit = limit;
+	}
+
+	public void setSkip(int skip) {
+		this.skip = skip;
 	}
 
 	@Override
