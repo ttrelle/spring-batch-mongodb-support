@@ -171,6 +171,50 @@ public class MongoDBItemReaderTest extends AbstractMongoDBTest {
 		assertFields(docs, "j");
 	}
 	
+	@Test
+	public void should_query_documents_with_skip() throws Exception {
+		// given
+		for (int i =0; i<5;i++) {
+			insert("{i:" + i + ", j:42}");
+		}
+		reader.setSkip(2);
+	
+		// when
+		reader.doOpen();
+		List<DBObject> docs = readAll();
+		
+		// then
+		assertReadCount(docs, 3);
+	}
+
+	@Test
+	public void should_query_documents_with_skip_and_limit() throws Exception {
+		// given
+		for (int i =0; i<5;i++) {
+			insert("{i:" + i + ", j:42}");
+		}
+		reader.setSkip(2);
+		reader.setLimit(2);
+	
+		// when
+		reader.doOpen();
+		List<DBObject> docs = readAll();
+		
+		// then
+		assertReadCount(docs, 2);
+	}
+	
+	
+	@Test(expected = IllegalArgumentException.class)
+	public void should_handle_illegal_skip_value() throws Exception {
+		// given
+		reader.setSkip(-1);
+	
+		// when
+		reader.doOpen();
+		
+		// then: expect expection		
+	}
 	
 	@Test(expected = IllegalArgumentException.class)
 	public void should_handle_illegal_query() throws Exception {
