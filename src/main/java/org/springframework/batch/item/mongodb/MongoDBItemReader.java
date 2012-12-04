@@ -140,6 +140,11 @@ public class MongoDBItemReader
 	@Override
 	protected void doOpen() throws Exception {
 		
+		// negative skip value are not supported
+		if ( skip < 0 ) {
+			throw new IllegalArgumentException("Negative skip values are not supported: " + skip);
+		}
+		
 		// do NOT read from a db that does not exist
 		if ( !dbExists() ) {
 			throw new IllegalArgumentException("No such database: " + db);
